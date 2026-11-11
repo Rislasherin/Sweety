@@ -454,13 +454,13 @@ graph LR
     end
 
     subgraph "Docker Compose Network (sweety_network)"
-        Frontend["sweety_frontend<br/>(Nginx : Port 80)"]
-        Backend["sweety_backend<br/>(Node 22 : Port 3000)"]
-        Postgres["sweety_postgres<br/>(PostgreSQL 17 : Port 5432)"]
+        Frontend["sweety_frontend<br/>(Nginx : Host 3001 -> Container 80)"]
+        Backend["sweety_backend<br/>(Node 22 : Host 5001 -> Container 3000)"]
+        Postgres["sweety_postgres<br/>(PostgreSQL 17 : Host 5433 -> Container 5432)"]
     end
 
-    Browser -->|"http://localhost:80"| Frontend
-    Browser -->|"http://localhost:3000"| Backend
+    Browser -->|"http://localhost:3001"| Frontend
+    Browser -->|"http://localhost:5001"| Backend
     Frontend -->|"Proxy /api/ -> http://backend:3000"| Backend
     Backend -->|"postgres:5432"| Postgres
     Postgres --- Volume[("Volume: postgres_data")]
@@ -548,9 +548,9 @@ A native pre-commit hook is configured at `.git/hooks/commit-msg` to enforce thi
 | `POSTGRES_USER` | `postgres` | PostgreSQL superuser username |
 | `POSTGRES_PASSWORD` | `postgres` | PostgreSQL superuser password |
 | `POSTGRES_DB` | `sweety_db` | Primary application database name |
-| `POSTGRES_PORT` | `5432` | Exposed PostgreSQL host port |
-| `BACKEND_PORT` | `3000` | Exposed backend host port |
-| `FRONTEND_PORT` | `80` | Exposed frontend host port |
+| `POSTGRES_PORT` | `5433` | Exposed PostgreSQL host port (isolated from default 5432) |
+| `BACKEND_PORT` | `5001` | Exposed backend host port (isolated from default 3000) |
+| `FRONTEND_PORT` | `3001` | Exposed frontend host port (isolated from default 80/3000) |
 
 ### Backend (`server/.env.example`)
 | Variable | Type | Default | Purpose |
