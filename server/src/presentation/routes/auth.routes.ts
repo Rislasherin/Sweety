@@ -14,6 +14,10 @@ export function createAuthRouter(
 
   router.post("/login", validateDto(LoginUserRequestDTO), authController.login);
 
+  router.post("/refresh", authController.refresh);
+
+  router.post("/logout", authController.logout);
+
   router.get("/me", authMiddleware, authController.me);
 
   return router;

@@ -14,8 +14,10 @@ const envSchema = z.object({
     .string()
     .min(16, "JWT_SECRET must be at least 16 characters")
     .default("sweety_default_jwt_secret_at_least_32_characters_long"),
-  JWT_EXPIRES_IN: z.string().default("1d"),
+  JWT_EXPIRES_IN: z.string().default("15m"),
   JWT_EXPIRATION: z.string().optional(),
+  JWT_ACCESS_EXPIRES_IN: z.string().default("15m"),
+  JWT_REFRESH_EXPIRES_IN: z.string().default("7d"),
   LOG_LEVEL: z.enum(["trace", "debug", "info", "warn", "error", "fatal"]).default("info"),
 });
 
