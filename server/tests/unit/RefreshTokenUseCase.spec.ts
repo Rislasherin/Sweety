@@ -5,10 +5,14 @@ import { type IUserRepository } from "@domain/repositories/IUserRepository";
 import { type IRefreshTokenRepository } from "@domain/repositories/IRefreshTokenRepository";
 import { type ITokenService } from "@application/interfaces/ITokenService";
 import { type IRefreshTokenService } from "@application/interfaces/IRefreshTokenService";
+import { type RefreshTokenResult } from "@application/use-cases/auth/interfaces/IRefreshTokenUseCase";
 import { InvalidRefreshTokenError } from "@application/errors/InvalidRefreshTokenError";
 import { RefreshToken } from "@domain/entities/RefreshToken";
 import { User } from "@domain/entities/User";
 import { Email } from "@domain/value-objects/Email";
+import { InMemoryRefreshTokenRepository } from "@infrastructure/repositories/InMemoryRefreshTokenRepository";
+import { CryptoRefreshTokenService } from "@infrastructure/services/CryptoRefreshTokenService";
+import { JwtTokenService } from "@infrastructure/services/JwtTokenService";
 
 describe("RefreshTokenUseCase & Token Rotation Unit Tests", () => {
   let userRepo: IUserRepository;
@@ -37,7 +41,7 @@ describe("RefreshTokenUseCase & Token Rotation Unit Tests", () => {
   beforeEach(() => {
     userRepo = {
       findByEmail: vi.fn(),
-      findById: vi.fn(),
+      findById: vi.fn().mockResolvedValue(mockUser),
       save: vi.fn(),
     };
 
@@ -115,14 +119,14 @@ describe("RefreshTokenUseCase & Token Rotation Unit Tests", () => {
     expect(refreshTokenRepo.rotateToken).not.toHaveBeenCalled();
   });
 
-  it("4. Reuse detection: presenting an already revoked/rotated token revokes entire session family", async () => {
+  it("4. Reuse detection: presenting an already revoked token revokes entire session family immediately", async () => {
     const revokedToken = new RefreshToken({
       id: "token-stolen",
       userId: "user-123",
       tokenHash: "hashed-stolen",
       familyId: "family-stolen-session",
       expiresAt: new Date(Date.now() + 1000 * 60 * 60),
-      isRevoked: true, // Already rotated!
+      isRevoked: true,
       replacedBy: "token-newer",
     });
 
@@ -164,5 +168,103 @@ describe("RefreshTokenUseCase & Token Rotation Unit Tests", () => {
 
     expect(refreshTokenService.hashToken).toHaveBeenCalledWith("raw-token-1");
     expect(refreshTokenRepo.revokeFamily).toHaveBeenCalledWith("family-abc");
+  });
+});
+
+describe("Concurrent Refresh & Token Family Concurrency Strategy", () => {
+  it("executes full concurrency and reuse lifecycle with realistic repository", async () => {
+    const realCryptoService = new CryptoRefreshTokenService();
+    const inMemoryRepo = new InMemoryRefreshTokenRepository();
+    const jwtService = new JwtTokenService({
+      secret: "secure-test-secret-at-least-32-characters",
+      expiresIn: "15m",
+      issuer: "sweety-api",
+      audience: "sweety-client",
+    });
+
+    const user = User.create({
+      id: "user-concurrent-1",
+      name: "Concurrent User",
+      email: Email.create("concurrent@example.com"),
+      passwordHash: "bcrypt-hash",
+    });
+
+    const userRepo: IUserRepository = {
+      findById: vi.fn().mockResolvedValue(user),
+      findByEmail: vi.fn().mockResolvedValue(user),
+      save: vi.fn(),
+    };
+
+    const useCase = new RefreshTokenUseCase(userRepo, inMemoryRepo, jwtService, realCryptoService);
+
+    // Setup: User logs in on Laptop (Family 1) and Phone (Family 2)
+    const laptopRawToken = realCryptoService.generateToken();
+    const laptopTokenEntity = new RefreshToken({
+      id: "token-laptop-1",
+      userId: user.id,
+      tokenHash: realCryptoService.hashToken(laptopRawToken),
+      familyId: "family-laptop",
+      expiresAt: realCryptoService.getExpirationDate(),
+    });
+    await inMemoryRepo.save(laptopTokenEntity);
+
+    const phoneRawToken = realCryptoService.generateToken();
+    const phoneTokenEntity = new RefreshToken({
+      id: "token-phone-1",
+      userId: user.id,
+      tokenHash: realCryptoService.hashToken(phoneRawToken),
+      familyId: "family-phone",
+      expiresAt: realCryptoService.getExpirationDate(),
+    });
+    await inMemoryRepo.save(phoneTokenEntity);
+
+    // 1. Two legitimate concurrent refresh requests on the same laptop token
+    const [res1, res2] = await Promise.allSettled([
+      useCase.execute({ refreshToken: laptopRawToken }),
+      useCase.execute({ refreshToken: laptopRawToken }),
+    ]);
+
+    // 2. Exactly one valid rotation result is produced
+    const fulfilledResults = [res1, res2].filter((r) => r.status === "fulfilled");
+    const rejectedResults = [res1, res2].filter((r) => r.status === "rejected");
+
+    expect(fulfilledResults).toHaveLength(1);
+    expect(rejectedResults).toHaveLength(1);
+
+    const successfulResult = (fulfilledResults[0] as PromiseFulfilledResult<RefreshTokenResult>)
+      .value;
+    expect(successfulResult.accessToken).toBeDefined();
+    expect(successfulResult.refreshToken).toBeDefined();
+    expect(successfulResult.refreshToken).not.toBe(laptopRawToken);
+
+    // The concurrent duplicate request was rejected cleanly without revoking the family
+    const duplicateError = (rejectedResults[0] as PromiseRejectedResult).reason;
+    expect(duplicateError).toBeInstanceOf(InvalidRefreshTokenError);
+    expect(duplicateError.message).toContain("Refresh request already in progress");
+
+    // Verify family-laptop is NOT revoked: the newly rotated token is valid
+    const newLaptopHash = realCryptoService.hashToken(successfulResult.refreshToken);
+    const newLaptopToken = await inMemoryRepo.findByTokenHash(newLaptopHash);
+    expect(newLaptopToken?.isRevoked).toBe(false);
+
+    // 3. A subsequent request using the genuinely reused old token immediately triggers reuse detection
+    await expect(useCase.execute({ refreshToken: laptopRawToken })).rejects.toThrow(
+      "Token reuse detected. Session invalidated.",
+    );
+
+    // 4. Correct family revocation: laptop family is now completely revoked
+    const refreshedLaptopTokenAfterReuse = await inMemoryRepo.findByTokenHash(newLaptopHash);
+    expect(refreshedLaptopTokenAfterReuse?.isRevoked).toBe(true);
+
+    // 5. Other independent device/session families (phone) remain completely unaffected
+    const phoneTokenAfterIncident = await inMemoryRepo.findByTokenHash(
+      realCryptoService.hashToken(phoneRawToken),
+    );
+    expect(phoneTokenAfterIncident?.isRevoked).toBe(false);
+
+    // Phone can still refresh normally
+    const phoneRefreshResult = await useCase.execute({ refreshToken: phoneRawToken });
+    expect(phoneRefreshResult.accessToken).toBeDefined();
+    expect(phoneRefreshResult.refreshToken).toBeDefined();
   });
 });

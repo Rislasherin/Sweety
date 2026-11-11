@@ -158,4 +158,49 @@ describe('authService', () => {
       })
     ).rejects.toThrow('A user with this email already exists')
   })
+
+  it('recovers from a transient concurrent refresh race by retrying once', async () => {
+    const concurrencyError = new ApiError({
+      message: 'Refresh request already in progress',
+      statusCode: 401,
+      code: 'UNAUTHORIZED',
+    })
+
+    const successfulRetryResponse = {
+      data: {
+        success: true,
+        message: 'Token refreshed successfully',
+        data: {
+          token: 'recovered-access-token',
+          user: {
+            id: 'user-123',
+            name: 'Jane Doe',
+            email: 'jane@example.com',
+          },
+        },
+      },
+    }
+
+    vi.spyOn(apiClient, 'post')
+      .mockRejectedValueOnce(concurrencyError)
+      .mockResolvedValueOnce(successfulRetryResponse)
+
+    const result = await authService.refresh()
+
+    expect(apiClient.post).toHaveBeenCalledTimes(2)
+    expect(result.token).toBe('recovered-access-token')
+  })
+
+  it('refresh terminates without infinite loop when recovery retry fails', async () => {
+    const error = new ApiError({
+      message: 'Session expired',
+      statusCode: 401,
+      code: 'UNAUTHORIZED',
+    })
+
+    vi.spyOn(apiClient, 'post').mockRejectedValue(error)
+
+    await expect(authService.refresh()).rejects.toThrow('Session expired')
+    expect(apiClient.post).toHaveBeenCalledTimes(2) // Exactly 2 calls: initial + 1 single retry, strictly capped
+  })
 })

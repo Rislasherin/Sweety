@@ -184,4 +184,49 @@ describe("Refresh Token & Session Lifecycle (HTTP Integration)", () => {
     expect(clearedCookie).toBeDefined();
     expect(clearedCookie).toMatch(/(Expires=Thu, 01 Jan 1970|Max-Age=0)/);
   });
+
+  it("5. POST /api/auth/refresh from an untrusted Origin header is rejected with HTTP 403 Forbidden", async () => {
+    const response = await request(app)
+      .post("/api/auth/refresh")
+      .set("Origin", "https://attacker-domain.evil")
+      .set("Cookie", [`${REFRESH_COOKIE_NAME}=some-token`]);
+
+    expect(response.status).toBe(403);
+    expect(response.body.success).toBe(false);
+    expect(refreshTokenRepo.rotateToken).not.toHaveBeenCalled();
+    expect(refreshTokenRepo.revokeFamily).not.toHaveBeenCalled();
+  });
+
+  it("6. POST /api/auth/logout from an untrusted Origin header is rejected with HTTP 403 Forbidden", async () => {
+    const response = await request(app)
+      .post("/api/auth/logout")
+      .set("Origin", "https://untrusted-site.com")
+      .set("Cookie", [`${REFRESH_COOKIE_NAME}=some-token`]);
+
+    expect(response.status).toBe(403);
+    expect(response.body.success).toBe(false);
+    expect(refreshTokenRepo.revokeFamily).not.toHaveBeenCalled();
+  });
+
+  it("7. POST /api/auth/refresh from an allowed Origin header is accepted and rotates token", async () => {
+    const activeToken = new RefreshToken({
+      id: "token-active-allowed",
+      userId: "user-456",
+      tokenHash: "hash-allowed-cookie-token",
+      familyId: "session-family-allowed",
+      expiresAt: new Date(Date.now() + 1000 * 60 * 60),
+      isRevoked: false,
+    });
+
+    vi.mocked(refreshTokenRepo.findByTokenHash).mockResolvedValue(activeToken);
+
+    const response = await request(app)
+      .post("/api/auth/refresh")
+      .set("Origin", "http://localhost:3001")
+      .set("Cookie", [`${REFRESH_COOKIE_NAME}=allowed-cookie-token`]);
+
+    expect(response.status).toBe(200);
+    expect(response.body.success).toBe(true);
+    expect(response.headers["access-control-allow-origin"]).toBe("http://localhost:3001");
+  });
 });
