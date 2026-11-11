@@ -4,6 +4,7 @@ node_modules/
 # Production build artifacts
 dist/
 dist-ssr/
+*.tsbuildinfo
 
 # Local environment files (never commit real credentials)
 .env
