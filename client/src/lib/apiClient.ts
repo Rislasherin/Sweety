@@ -102,11 +102,24 @@ apiClient.interceptors.response.use(
       isRefreshing = true
 
       try {
-        const refreshResponse = await axios.post<ApiResponse<{ token: string; user: User }>>(
-          `${API_BASE_URL}/auth/refresh`,
-          {},
-          { withCredentials: true }
-        )
+        let refreshResponse: { data: ApiResponse<{ token: string; user: User }> } | null = null
+
+        try {
+          refreshResponse = await axios.post<ApiResponse<{ token: string; user: User }>>(
+            `${API_BASE_URL}/auth/refresh`,
+            {},
+            { withCredentials: true }
+          )
+        } catch {
+          // If a concurrent refresh was in flight in another tab, pause briefly for that
+          // tab to write the new cookie into the browser jar, then attempt exactly one recovery retry.
+          await new Promise((resolve) => setTimeout(resolve, 150))
+          refreshResponse = await axios.post<ApiResponse<{ token: string; user: User }>>(
+            `${API_BASE_URL}/auth/refresh`,
+            {},
+            { withCredentials: true }
+          )
+        }
 
         const newAccessToken = refreshResponse.data.data.token
         setAccessToken(newAccessToken)

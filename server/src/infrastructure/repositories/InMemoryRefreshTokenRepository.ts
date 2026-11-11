@@ -1,5 +1,6 @@
 import { type IRefreshTokenRepository } from "@domain/repositories/IRefreshTokenRepository";
 import { type RefreshToken } from "@domain/entities/RefreshToken";
+import { InvalidRefreshTokenError } from "@application/errors/InvalidRefreshTokenError";
 
 export class InMemoryRefreshTokenRepository implements IRefreshTokenRepository {
   private readonly _tokens: Map<string, RefreshToken> = new Map();
@@ -26,11 +27,19 @@ export class InMemoryRefreshTokenRepository implements IRefreshTokenRepository {
     newToken: RefreshToken,
     now: Date = new Date(),
   ): Promise<void> {
+    let targetToken: RefreshToken | undefined;
     for (const token of this._tokens.values()) {
       if (token.id === oldTokenId) {
-        token.rotate(newToken.id, now);
+        targetToken = token;
+        break;
       }
     }
+
+    if (!targetToken || targetToken.isRevoked) {
+      throw new InvalidRefreshTokenError("Token was already rotated or revoked");
+    }
+
+    targetToken.rotate(newToken.id, now);
     this._tokens.set(newToken.tokenHash, newToken);
   }
 

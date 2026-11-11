@@ -2,6 +2,7 @@ import { type PrismaClient } from "@prisma/client";
 import { type IRefreshTokenRepository } from "@domain/repositories/IRefreshTokenRepository";
 import { type RefreshToken } from "@domain/entities/RefreshToken";
 import { PrismaRefreshTokenMapper } from "@infrastructure/mappers/PrismaRefreshTokenMapper";
+import { InvalidRefreshTokenError } from "@application/errors/InvalidRefreshTokenError";
 
 export class PrismaRefreshTokenRepository implements IRefreshTokenRepository {
   constructor(private readonly prisma: PrismaClient) {}
@@ -42,15 +43,22 @@ export class PrismaRefreshTokenRepository implements IRefreshTokenRepository {
     const newPersistenceData = PrismaRefreshTokenMapper.toPersistence(newToken);
 
     await this.prisma.$transaction(async (tx) => {
-      // 1. Mark previous token as revoked and replaced
-      await tx.refreshToken.update({
-        where: { id: oldTokenId },
+      // 1. Atomically revoke old token ONLY if it is currently active (not revoked)
+      const updateResult = await tx.refreshToken.updateMany({
+        where: {
+          id: oldTokenId,
+          isRevoked: false,
+        },
         data: {
           isRevoked: true,
           revokedAt: now,
           replacedBy: newToken.id,
         },
       });
+
+      if (updateResult.count === 0) {
+        throw new InvalidRefreshTokenError("Token was already rotated or revoked");
+      }
 
       // 2. Insert new token
       await tx.refreshToken.create({

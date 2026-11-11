@@ -22,10 +22,19 @@ export const authService = {
     return response.data.data
   },
 
-  async refresh(): Promise<{ token: string; user: User }> {
-    const response =
-      await apiClient.post<ApiResponse<{ token: string; user: User }>>('/auth/refresh')
-    return response.data.data
+  async refresh(isRetry = false): Promise<{ token: string; user: User }> {
+    try {
+      const response =
+        await apiClient.post<ApiResponse<{ token: string; user: User }>>('/auth/refresh')
+      return response.data.data
+    } catch (error) {
+      if (!isRetry) {
+        // Recover from a concurrent rotation race in another tab by waiting briefly and retrying once
+        await new Promise((resolve) => setTimeout(resolve, 150))
+        return this.refresh(true)
+      }
+      throw error
+    }
   },
 
   async logout(): Promise<void> {
