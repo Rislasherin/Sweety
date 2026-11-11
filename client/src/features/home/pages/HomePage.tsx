@@ -54,7 +54,17 @@ export const HomePage: React.FC = () => {
               : 'A clinical-grade, modern blood glucose tracking application built with React, TypeScript, Tailwind CSS, and Atomic Design architecture.'}
           </p>
           <div className="flex flex-wrap items-center gap-3">
-            {!isAuthenticated && (
+            {isAuthenticated ? (
+              <Link to="/readings">
+                <Button
+                  variant="secondary"
+                  size="md"
+                  className="font-semibold bg-white text-teal-900 hover:bg-teal-50"
+                >
+                  Manage Glucose Readings
+                </Button>
+              </Link>
+            ) : (
               <>
                 <Link to="/register">
                   <Button
@@ -77,15 +87,11 @@ export const HomePage: React.FC = () => {
               </>
             )}
             <Button
-              variant={isAuthenticated ? 'secondary' : 'ghost'}
+              variant="ghost"
               size="md"
               isLoading={isPinging}
               onClick={handlePing}
-              className={
-                isAuthenticated
-                  ? 'bg-white text-teal-900 hover:bg-teal-50 font-semibold'
-                  : 'text-teal-100 hover:bg-teal-700/50'
-              }
+              className="text-teal-100 hover:bg-teal-700/50"
             >
               Test Backend Connection
             </Button>
@@ -147,19 +153,24 @@ export const HomePage: React.FC = () => {
               <span className="text-xs font-semibold uppercase tracking-wider text-teal-600">
                 Module 02
               </span>
-              <Badge variant="info">Ready to Build</Badge>
+              <Badge variant="success">Active</Badge>
             </div>
             <CardTitle>Glucose Readings</CardTitle>
             <CardDescription>
-              Full CRUD for tracking blood glucose, meal contexts, and notes.
+              Full CRUD for tracking blood glucose, meal contexts, and slots.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ul className="text-xs text-slate-500 space-y-1.5 list-disc list-inside">
+            <ul className="text-xs text-slate-500 space-y-1.5 list-disc list-inside mb-4">
               <li>Clinical status categorization (Low, Normal, Elevated, High)</li>
-              <li>Filterable history by date range and meal context</li>
+              <li>Filterable history by calendar date</li>
               <li>Validated entry forms with responsive modals</li>
             </ul>
+            <Link to="/readings">
+              <Button variant="outline" size="sm" className="w-full text-xs">
+                Open Dashboard &rarr;
+              </Button>
+            </Link>
           </CardContent>
         </Card>
 

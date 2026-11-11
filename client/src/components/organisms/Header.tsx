@@ -15,7 +15,7 @@ export const Header: React.FC<HeaderProps> = ({ apiStatus = 'checking' }) => {
 
   const navLinks = [
     { label: 'Home', path: '/' },
-    { label: 'Readings', path: '/readings', badge: 'Soon' },
+    { label: 'Readings', path: '/readings' },
     { label: 'Reports', path: '/reports', badge: 'Soon' },
   ]
 
