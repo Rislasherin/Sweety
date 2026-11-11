@@ -7,6 +7,7 @@ import { Messages } from "@shared/constants/messages.constants";
 import { logger } from "@infrastructure/logging/logger";
 import { UserAlreadyExistsError } from "@application/errors/UserAlreadyExistsError";
 import { InvalidCredentialsError } from "@application/errors/InvalidCredentialsError";
+import { InvalidRefreshTokenError } from "@application/errors/InvalidRefreshTokenError";
 import {
   ReadingNotFoundError,
   DuplicateReadingSlotError,
@@ -67,7 +68,7 @@ export const errorHandler: ErrorRequestHandler = (
     return;
   }
 
-  if (err instanceof InvalidCredentialsError) {
+  if (err instanceof InvalidCredentialsError || err instanceof InvalidRefreshTokenError) {
     logger.warn({ reqId, method, path, statusCode: HttpStatus.UNAUTHORIZED }, err.message);
     res.status(HttpStatus.UNAUTHORIZED).json({
       success: false,
