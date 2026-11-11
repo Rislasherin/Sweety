@@ -5,11 +5,15 @@ import { type ITokenService, type TokenPayload } from "@application/interfaces/I
 export interface JwtConfig {
   secret: string;
   expiresIn?: string;
+  issuer?: string;
+  audience?: string;
 }
 
 export class JwtTokenService implements ITokenService {
   private readonly secret: string;
   private readonly expiresIn: string;
+  private readonly issuer: string;
+  private readonly audience: string;
 
   constructor(config: JwtConfig) {
     if (!config.secret) {
@@ -17,12 +21,16 @@ export class JwtTokenService implements ITokenService {
     }
     this.secret = config.secret;
     this.expiresIn = config.expiresIn ?? "15m";
+    this.issuer = config.issuer ?? "sweety-api";
+    this.audience = config.audience ?? "sweety-client";
   }
 
   generate(payload: TokenPayload): string {
     const options: SignOptions = {
       expiresIn: this.expiresIn as SignOptions["expiresIn"],
       algorithm: "HS256",
+      issuer: this.issuer,
+      audience: this.audience,
     };
 
     return jwt.sign(
@@ -40,7 +48,16 @@ export class JwtTokenService implements ITokenService {
   verify(token: string): TokenPayload {
     const decoded = jwt.verify(token, this.secret, {
       algorithms: ["HS256"],
-    }) as { userId?: string; email?: string; jti?: string; type?: string };
+      issuer: this.issuer,
+      audience: this.audience,
+    }) as {
+      userId?: string;
+      email?: string;
+      jti?: string;
+      type?: string;
+      iss?: string;
+      aud?: string;
+    };
 
     if (!decoded.userId || !decoded.email) {
       throw new Error("Invalid token payload");

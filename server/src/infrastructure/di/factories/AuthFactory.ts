@@ -66,6 +66,8 @@ export class AuthFactory {
       new JwtTokenService({
         secret: env.JWT_SECRET,
         expiresIn: env.JWT_ACCESS_EXPIRES_IN,
+        issuer: env.JWT_ISSUER,
+        audience: env.JWT_AUDIENCE,
       });
     this._refreshTokenService = overrides.refreshTokenService ?? new CryptoRefreshTokenService();
 

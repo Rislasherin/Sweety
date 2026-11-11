@@ -13,7 +13,14 @@ import { createReadingRouter } from "@presentation/routes/reading.routes";
 import { createReportRouter } from "@presentation/routes/report.routes";
 import { errorHandler } from "@presentation/middlewares/errorMiddleware";
 import { requestIdMiddleware } from "@presentation/middlewares/requestIdMiddleware";
+import {
+  createOriginGuard,
+  parseAllowedOrigins,
+} from "@presentation/middlewares/originGuardMiddleware";
+import { env } from "@main/config/env";
+import { AppError } from "@shared/errors/AppError";
 import { HttpStatus } from "@shared/constants/httpStatus.enum";
+import { ErrorCode } from "@shared/constants/errorCode.enum";
 import { Messages } from "@shared/constants/messages.constants";
 import { type IUserRepository } from "@domain/repositories/IUserRepository";
 import { type IReadingRepository } from "@domain/repositories/IReadingRepository";
@@ -24,6 +31,8 @@ export interface AppDependencies {
   container?: Container;
   authController?: AuthController;
   authMiddleware?: RequestHandler;
+  originGuard?: RequestHandler;
+  corsOrigin?: string;
   readingController?: ReadingController;
   reportController?: ReportController;
   userRepository?: IUserRepository;
@@ -32,15 +41,30 @@ export interface AppDependencies {
   tokenService?: ITokenService;
 }
 
+export { parseAllowedOrigins };
+
 export function createApp(dependencies: AppDependencies = {}): Express {
   const app = express();
+  const allowedOrigins = parseAllowedOrigins(dependencies.corsOrigin);
 
   // Security headers & Request ID tracking
   app.use(requestIdMiddleware());
   app.use(helmet());
   app.use(
     cors({
-      origin: true,
+      origin: (requestOrigin, callback) => {
+        // Non-browser or server-to-server requests have no origin header
+        if (!requestOrigin) {
+          return callback(null, true);
+        }
+        const normalized = requestOrigin.trim().replace(/\/+$/, "");
+        if (allowedOrigins.includes(normalized)) {
+          return callback(null, true);
+        }
+        return callback(
+          new AppError("Not allowed by CORS", HttpStatus.FORBIDDEN, ErrorCode.FORBIDDEN),
+        );
+      },
       credentials: true,
     }),
   );
@@ -84,11 +108,17 @@ export function createApp(dependencies: AppDependencies = {}): Express {
 
   const authController = dependencies.authController ?? container.authController;
   const authMiddleware = dependencies.authMiddleware ?? container.authMiddleware;
+  const originGuard =
+    dependencies.originGuard ??
+    createOriginGuard({
+      allowedOrigins,
+      isProduction: env.NODE_ENV === "production",
+    });
   const readingController = dependencies.readingController ?? container.readingController;
   const reportController = dependencies.reportController ?? container.reportController;
 
   // Mount routes
-  app.use("/api/auth", createAuthRouter(authController, authMiddleware));
+  app.use("/api/auth", createAuthRouter(authController, authMiddleware, originGuard));
   app.use("/api/readings", createReadingRouter(readingController, authMiddleware));
   app.use("/api/reports", createReportRouter(reportController, authMiddleware));
 
