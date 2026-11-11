@@ -1,0 +1,44 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ReadingSlot {
+  MORNING
+  AFTER_BREAKFAST
+  AFTER_LUNCH
+  AFTER_DINNER
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String   @db.VarChar(100)
+  email        String   @unique @db.VarChar(255)
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  readings Reading[]
+
+  @@map("users")
+}
+
+model Reading {
+  id           String      @id @default(uuid())
+  userId       String
+  date         DateTime    @db.Date
+  slot         ReadingSlot
+  glucoseValue Int
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date, slot])
+  @@index([userId, date])
+  @@map("readings")
+}
