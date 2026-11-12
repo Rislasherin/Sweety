@@ -131,7 +131,7 @@ export const HomePage: React.FC = () => {
               <span className="text-xs font-semibold uppercase tracking-wider text-teal-600">
                 Module 01
               </span>
-              <Badge variant="info">Ready to Build</Badge>
+              <Badge variant="success">Active</Badge>
             </div>
             <CardTitle>Authentication</CardTitle>
             <CardDescription>

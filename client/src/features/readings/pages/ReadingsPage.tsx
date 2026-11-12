@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useReadings } from '../hooks/useReadings'
 import type { CreateReadingDTO, Reading, UpdateReadingDTO } from '../types'
 import { ReadingsTemplate } from '../components/templates/ReadingsTemplate'
+import { formatDateOnly } from '../utils/readingValidation'
 
 export const ReadingsPage: React.FC = () => {
   const {
@@ -65,14 +66,28 @@ export const ReadingsPage: React.FC = () => {
     setMutationError(null)
     try {
       if (selectedReading) {
-        await updateReading(selectedReading.id, data)
+        const updated = await updateReading(selectedReading.id, data)
         setIsFormModalOpen(false)
         setSelectedReading(null)
-        showFeedback('success', 'Glucose reading successfully updated.')
+        if (dateFilter && dateFilter !== updated.date) {
+          showFeedback(
+            'info',
+            `Glucose reading updated for ${formatDateOnly(updated.date)} (not visible in current date filter).`
+          )
+        } else {
+          showFeedback('success', 'Glucose reading successfully updated.')
+        }
       } else {
-        await createReading(data as CreateReadingDTO)
+        const created = await createReading(data as CreateReadingDTO)
         setIsFormModalOpen(false)
-        showFeedback('success', 'New glucose reading recorded successfully.')
+        if (dateFilter && dateFilter !== created.date) {
+          showFeedback(
+            'info',
+            `New glucose reading recorded for ${formatDateOnly(created.date)} (not visible in current date filter).`
+          )
+        } else {
+          showFeedback('success', 'New glucose reading recorded successfully.')
+        }
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Operation failed. Please try again.'
