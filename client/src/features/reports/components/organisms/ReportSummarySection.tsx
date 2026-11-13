@@ -51,7 +51,7 @@ export const ReportSummarySection: React.FC<ReportSummarySectionProps> = ({
       <MetricStatCard
         label="Highest Reading"
         value={formatStatValue(highest)}
-        subtext="Highest recorded level"
+        subtext="Highest reading recorded"
         badgeText={highest !== null && highest >= 126 ? 'High' : undefined}
         badgeVariant={highest !== null && highest >= 126 ? 'danger' : 'neutral'}
         icon={
@@ -75,7 +75,7 @@ export const ReportSummarySection: React.FC<ReportSummarySectionProps> = ({
       <MetricStatCard
         label="Lowest Reading"
         value={formatStatValue(lowest)}
-        subtext="Lowest recorded level"
+        subtext="Lowest reading recorded"
         badgeText={lowest !== null && lowest < 70 ? 'Low' : undefined}
         badgeVariant={lowest !== null && lowest < 70 ? 'warning' : 'neutral'}
         icon={

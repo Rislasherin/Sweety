@@ -385,7 +385,7 @@ export const HomePage: React.FC = () => {
 
               {recentReadings.length > 0 ? (
                 <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs divide-y divide-slate-100 overflow-hidden">
-                  {recentReadings.slice(0, 4).map((r) => (
+                  {recentReadings.slice(0, 3).map((r) => (
                     <div
                       key={r.id}
                       className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 hover:bg-slate-50/60 transition-colors"

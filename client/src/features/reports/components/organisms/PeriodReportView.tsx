@@ -92,7 +92,7 @@ export const PeriodReportView: React.FC<PeriodReportViewProps> = ({
                 <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100">
                   <span className="font-semibold text-slate-700 block mb-1">Clinical Note</span>
                   <p className="text-slate-600">
-                    These summary statistics help evaluate overall metabolic stability. Always discuss trends with your physician.
+                    Glucose categories are reference ranges, not clinical diagnoses. Always discuss your personal glycemic targets with your physician.
                   </p>
                 </div>
               </div>
