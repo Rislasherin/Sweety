@@ -10,6 +10,14 @@ export interface DailyReportReadingItem {
   createdAt: string // ISO 8601 string
 }
 
+export interface DailyTrendPoint {
+  date: string // YYYY-MM-DD
+  average: number // Daily average rounded to 1 decimal place
+  count: number // Number of readings on that day
+  highest: number
+  lowest: number
+}
+
 export interface BaseReport {
   reportType: 'DAILY' | 'MONTH_TO_DATE' | 'PREVIOUS_MONTH'
   startDate: string // YYYY-MM-DD
@@ -20,6 +28,7 @@ export interface BaseReport {
   count: number
   totalReadings: number
   hasData: boolean
+  dailyTrends?: DailyTrendPoint[]
 }
 
 export interface DailyReport extends BaseReport {

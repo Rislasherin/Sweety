@@ -14,6 +14,14 @@ export interface DailyReportReadingItemDTO {
   createdAt: string;
 }
 
+export interface DailyTrendPointDTO {
+  date: string;
+  average: number;
+  count: number;
+  highest: number;
+  lowest: number;
+}
+
 export interface BaseReportResponseDTO {
   reportType: ReportType;
   startDate: string;
@@ -24,6 +32,7 @@ export interface BaseReportResponseDTO {
   count: number;
   totalReadings: number;
   hasData: boolean;
+  dailyTrends?: DailyTrendPointDTO[];
 }
 
 export interface DailyReportResponseDTO extends BaseReportResponseDTO {

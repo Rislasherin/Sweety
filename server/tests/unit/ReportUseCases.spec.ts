@@ -280,6 +280,54 @@ describe("Report Use Cases (Unit Tests)", () => {
 
       await expect(useCase.execute(userId, futureDateStr)).rejects.toThrow(FutureDateError);
     });
+
+    it("includes daily trends when findByDateRange is implemented", async () => {
+      mockReadingRepository.getAggregatedStats.mockResolvedValue({
+        highest: 155,
+        lowest: 92,
+        average: 118.4,
+        count: 2,
+      });
+
+      const mockFindByDateRange = vi.fn().mockResolvedValue([
+        Reading.create({
+          id: "r1",
+          userId,
+          date: parseDateOnly("2026-05-01"),
+          slot: ReadingSlotType.MORNING,
+          value: GlucoseValue.create(92),
+        }),
+        Reading.create({
+          id: "r2",
+          userId,
+          date: parseDateOnly("2026-05-05"),
+          slot: ReadingSlotType.AFTER_LUNCH,
+          value: GlucoseValue.create(155),
+        }),
+      ]);
+
+      (mockReadingRepository as unknown as { findByDateRange: typeof mockFindByDateRange }).findByDateRange =
+        mockFindByDateRange;
+
+      const report = await useCase.execute(userId, "2026-05-15");
+
+      expect(report.dailyTrends).toBeDefined();
+      expect(report.dailyTrends).toHaveLength(2);
+      expect(report.dailyTrends![0]).toEqual({
+        date: "2026-05-01",
+        average: 92,
+        count: 1,
+        highest: 92,
+        lowest: 92,
+      });
+      expect(report.dailyTrends![1]).toEqual({
+        date: "2026-05-05",
+        average: 155,
+        count: 1,
+        highest: 155,
+        lowest: 155,
+      });
+    });
   });
 
   describe("GeneratePreviousMonthReportUseCase", () => {
@@ -371,6 +419,54 @@ describe("Report Use Cases (Unit Tests)", () => {
       const futureDateStr = tomorrow.toISOString().slice(0, 10);
 
       await expect(useCase.execute(userId, futureDateStr)).rejects.toThrow(FutureDateError);
+    });
+
+    it("includes daily trends when findByDateRange is implemented for previous month", async () => {
+      mockReadingRepository.getAggregatedStats.mockResolvedValue({
+        highest: 165,
+        lowest: 88,
+        average: 122.1,
+        count: 2,
+      });
+
+      const mockFindByDateRange = vi.fn().mockResolvedValue([
+        Reading.create({
+          id: "r1",
+          userId,
+          date: parseDateOnly("2026-04-05"),
+          slot: ReadingSlotType.MORNING,
+          value: GlucoseValue.create(88),
+        }),
+        Reading.create({
+          id: "r2",
+          userId,
+          date: parseDateOnly("2026-04-20"),
+          slot: ReadingSlotType.AFTER_DINNER,
+          value: GlucoseValue.create(165),
+        }),
+      ]);
+
+      (mockReadingRepository as unknown as { findByDateRange: typeof mockFindByDateRange }).findByDateRange =
+        mockFindByDateRange;
+
+      const report = await useCase.execute(userId, "2026-05-10");
+
+      expect(report.dailyTrends).toBeDefined();
+      expect(report.dailyTrends).toHaveLength(2);
+      expect(report.dailyTrends![0]).toEqual({
+        date: "2026-04-05",
+        average: 88,
+        count: 1,
+        highest: 88,
+        lowest: 88,
+      });
+      expect(report.dailyTrends![1]).toEqual({
+        date: "2026-04-20",
+        average: 165,
+        count: 1,
+        highest: 165,
+        lowest: 165,
+      });
     });
   });
 });

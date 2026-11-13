@@ -9,6 +9,7 @@ import {
   getReportCategoryLabel,
 } from '../../utils/reportUtils'
 import { ReportSummarySection } from './ReportSummarySection'
+import { MonthlyTrendChart } from '../molecules/MonthlyTrendChart'
 import { GlycemicSpreadGauge } from '../molecules/GlycemicSpreadGauge'
 import { ReportEmptyState } from '../molecules/ReportEmptyState'
 
@@ -45,6 +46,13 @@ export const PeriodReportView: React.FC<PeriodReportViewProps> = ({
 
       {hasData ? (
         <>
+          {/* Monthly Daily-Average Glucose Trend Chart */}
+          <MonthlyTrendChart
+            dailyTrends={report.dailyTrends || []}
+            periodTitle={periodTitle}
+            dateRange={dateRange}
+          />
+
           {/* Glycemic Distribution Gauge */}
           <GlycemicSpreadGauge
             highest={report.highest}
