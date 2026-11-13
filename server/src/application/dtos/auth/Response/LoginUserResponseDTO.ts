@@ -12,4 +12,6 @@ export class LoginUserResponseDTO {
 
   @Expose()
   token!: string;
+
+  refreshToken?: string;
 }

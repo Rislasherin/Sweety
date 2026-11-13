@@ -31,9 +31,22 @@ export class ReadingController {
   getAll = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const userId = req.user!.id;
     const dateStr = typeof req.query.date === "string" ? req.query.date : undefined;
-    const result = await this._getUserReadingsUseCase.execute(userId, dateStr);
+    const page = req.query.page !== undefined ? Number(req.query.page) : 1;
+    const limit = req.query.limit !== undefined ? Number(req.query.limit) : 20;
 
-    sendSuccess(res, result, Messages.SUCCESS.READINGS_RETRIEVED, HttpStatus.OK);
+    const result = await this._getUserReadingsUseCase.execute(userId, {
+      date: dateStr,
+      page,
+      limit,
+    });
+
+    sendSuccess(
+      res,
+      result.readings,
+      Messages.SUCCESS.READINGS_RETRIEVED,
+      HttpStatus.OK,
+      result.pagination,
+    );
   });
 
   getById = asyncHandler(async (req: Request, res: Response): Promise<void> => {

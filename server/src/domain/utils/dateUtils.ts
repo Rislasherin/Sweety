@@ -97,3 +97,55 @@ export function getPreviousMonthRange(selectedDate: Date): DateRange {
 export function roundToOneDecimal(value: number): number {
   return Math.round((value + Number.EPSILON) * 10) / 10;
 }
+
+export interface DailyTrendCalculationItem {
+  date: Date | string;
+  glucoseValue: number;
+}
+
+export interface CalculatedDailyTrend {
+  date: string;
+  average: number;
+  count: number;
+  highest: number;
+  lowest: number;
+}
+
+export function calculateDailyTrends(
+  items: DailyTrendCalculationItem[],
+): CalculatedDailyTrend[] {
+  if (!items || items.length === 0) {
+    return [];
+  }
+
+  const map = new Map<string, number[]>();
+
+  for (const item of items) {
+    const dateStr =
+      item.date instanceof Date ? formatDateOnly(item.date) : String(item.date).slice(0, 10);
+    const existing = map.get(dateStr);
+    if (existing) {
+      existing.push(item.glucoseValue);
+    } else {
+      map.set(dateStr, [item.glucoseValue]);
+    }
+  }
+
+  const sortedDates = Array.from(map.keys()).sort();
+
+  return sortedDates.map((date) => {
+    const values = map.get(date)!;
+    const sum = values.reduce((acc, val) => acc + val, 0);
+    const avg = roundToOneDecimal(sum / values.length);
+    const highest = Math.max(...values);
+    const lowest = Math.min(...values);
+
+    return {
+      date,
+      average: avg,
+      count: values.length,
+      highest,
+      lowest,
+    };
+  });
+}

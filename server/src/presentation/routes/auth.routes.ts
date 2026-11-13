@@ -7,12 +7,21 @@ import { LoginUserRequestDTO } from "@application/dtos/auth/Request/LoginUserReq
 export function createAuthRouter(
   authController: AuthController,
   authMiddleware: RequestHandler,
+  originGuard?: RequestHandler,
 ): Router {
   const router = Router();
 
   router.post("/register", validateDto(RegisterUserRequestDTO), authController.register);
 
   router.post("/login", validateDto(LoginUserRequestDTO), authController.login);
+
+  if (originGuard) {
+    router.post("/refresh", originGuard, authController.refresh);
+    router.post("/logout", originGuard, authController.logout);
+  } else {
+    router.post("/refresh", authController.refresh);
+    router.post("/logout", authController.logout);
+  }
 
   router.get("/me", authMiddleware, authController.me);
 

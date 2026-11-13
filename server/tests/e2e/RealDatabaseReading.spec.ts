@@ -123,7 +123,7 @@ describe("Real PostgreSQL Database Reading Verification (E2E)", () => {
     expect(response.body.data.glucoseValue).toBe(98);
   });
 
-  it("4. Queries only return authenticated user's readings from PostgreSQL", async () => {
+  it("4. Queries only return authenticated user's readings from PostgreSQL with pagination metadata", async () => {
     const response = await request(app)
       .get("/api/readings")
       .set("Authorization", `Bearer ${token1}`)
@@ -132,6 +132,57 @@ describe("Real PostgreSQL Database Reading Verification (E2E)", () => {
     expect(response.body.data).toHaveLength(1);
     expect(response.body.data[0].id).toBe(createdReadingId);
     expect(response.body.data[0].userId).toBe(user1Id);
+    expect(response.body.pagination).toMatchObject({
+      page: 1,
+      limit: 20,
+      total: 1,
+      totalPages: 1,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    });
+  });
+
+  it("4b. Real PostgreSQL database-level pagination skip and take execution", async () => {
+    // Add additional reading for user 1
+    await request(app)
+      .post("/api/readings")
+      .set("Authorization", `Bearer ${token1}`)
+      .send({
+        date: "2026-05-11",
+        slot: "AFTER_LUNCH",
+        glucoseValue: 125,
+      })
+      .expect(201);
+
+    const page1Res = await request(app)
+      .get("/api/readings?page=1&limit=1")
+      .set("Authorization", `Bearer ${token1}`)
+      .expect(200);
+
+    expect(page1Res.body.data).toHaveLength(1);
+    expect(page1Res.body.pagination).toMatchObject({
+      page: 1,
+      limit: 1,
+      total: 2,
+      totalPages: 2,
+      hasNextPage: true,
+      hasPreviousPage: false,
+    });
+
+    const page2Res = await request(app)
+      .get("/api/readings?page=2&limit=1")
+      .set("Authorization", `Bearer ${token1}`)
+      .expect(200);
+
+    expect(page2Res.body.data).toHaveLength(1);
+    expect(page2Res.body.pagination).toMatchObject({
+      page: 2,
+      limit: 1,
+      total: 2,
+      totalPages: 2,
+      hasNextPage: false,
+      hasPreviousPage: true,
+    });
   });
 
   it("5. Cross-user reading access by ID returns 404 (User Isolation)", async () => {

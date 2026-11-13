@@ -54,6 +54,7 @@ describe("PrismaReadingRepository Unit Tests", () => {
         update: vi.fn(),
         deleteMany: vi.fn(),
       },
+      $transaction: vi.fn().mockImplementation((promises: Promise<unknown>[]) => Promise.all(promises)),
     };
     repository = new PrismaReadingRepository(mockPrisma as unknown as PrismaClient);
   });
@@ -172,6 +173,69 @@ describe("PrismaReadingRepository Unit Tests", () => {
         },
         orderBy: [{ date: "desc" }, { createdAt: "asc" }],
       });
+    });
+  });
+
+  describe("findPaginatedByUserId", () => {
+    it("queries database with calculated skip, take and returns total count and sorted readings", async () => {
+      const row1 = {
+        ...prismaRow,
+        id: "r1",
+        date: new Date("2026-05-10T00:00:00.000Z"),
+        slot: ReadingSlotType.AFTER_DINNER,
+      };
+      const row2 = {
+        ...prismaRow,
+        id: "r2",
+        date: new Date("2026-05-10T00:00:00.000Z"),
+        slot: ReadingSlotType.MORNING,
+      };
+
+      mockPrisma.reading.count.mockResolvedValue(25);
+      mockPrisma.reading.findMany.mockResolvedValue([row1, row2]);
+
+      const result = await repository.findPaginatedByUserId(testUserId, {
+        page: 2,
+        limit: 10,
+      });
+
+      expect(mockPrisma.reading.count).toHaveBeenCalledWith({
+        where: { userId: testUserId },
+      });
+      expect(mockPrisma.reading.findMany).toHaveBeenCalledWith({
+        where: { userId: testUserId },
+        skip: 10,
+        take: 10,
+        orderBy: [{ date: "desc" }, { createdAt: "asc" }],
+      });
+      expect(result.total).toBe(25);
+      expect(result.readings.length).toBe(2);
+      expect(result.readings[0].slot).toBe(ReadingSlotType.MORNING);
+      expect(result.readings[1].slot).toBe(ReadingSlotType.AFTER_DINNER);
+    });
+
+    it("includes date filter in count and findMany queries when date is provided", async () => {
+      const filterDate = new Date("2026-05-10T00:00:00.000Z");
+      mockPrisma.reading.count.mockResolvedValue(0);
+      mockPrisma.reading.findMany.mockResolvedValue([]);
+
+      const result = await repository.findPaginatedByUserId(testUserId, {
+        page: 1,
+        limit: 20,
+        date: filterDate,
+      });
+
+      expect(mockPrisma.reading.count).toHaveBeenCalledWith({
+        where: { userId: testUserId, date: filterDate },
+      });
+      expect(mockPrisma.reading.findMany).toHaveBeenCalledWith({
+        where: { userId: testUserId, date: filterDate },
+        skip: 0,
+        take: 20,
+        orderBy: [{ date: "desc" }, { createdAt: "asc" }],
+      });
+      expect(result.total).toBe(0);
+      expect(result.readings).toEqual([]);
     });
   });
 

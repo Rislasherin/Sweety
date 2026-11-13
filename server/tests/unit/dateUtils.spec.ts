@@ -6,6 +6,7 @@ import {
   getMonthToDateRange,
   getPreviousMonthRange,
   roundToOneDecimal,
+  calculateDailyTrends,
 } from "@domain/utils/dateUtils";
 import { InvalidDateError } from "@domain/errors/ReadingErrors";
 
@@ -148,6 +149,71 @@ describe("Date Utilities & Range Calculations (Unit Tests)", () => {
 
       expect(range.startDateStr).toBe("2026-08-01");
       expect(range.endDateStr).toBe("2026-08-31");
+    });
+  });
+
+  describe("calculateDailyTrends", () => {
+    it("returns empty array when input is empty or null", () => {
+      expect(calculateDailyTrends([])).toEqual([]);
+      expect(calculateDailyTrends(null as unknown as [])).toEqual([]);
+    });
+
+    it("calculates single daily trend point correctly", () => {
+      const items = [{ date: "2026-05-02", glucoseValue: 110 }];
+      const result = calculateDailyTrends(items);
+
+      expect(result).toEqual([
+        {
+          date: "2026-05-02",
+          average: 110,
+          count: 1,
+          highest: 110,
+          lowest: 110,
+        },
+      ]);
+    });
+
+    it("aggregates multiple readings on the same day into one point with accurate average", () => {
+      const items = [
+        { date: "2026-05-10", glucoseValue: 90 },
+        { date: "2026-05-10", glucoseValue: 120 },
+        { date: "2026-05-10", glucoseValue: 140 },
+        { date: "2026-05-10", glucoseValue: 160 },
+      ];
+      const result = calculateDailyTrends(items);
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual({
+        date: "2026-05-10",
+        average: 127.5,
+        count: 4,
+        highest: 160,
+        lowest: 90,
+      });
+    });
+
+    it("sorts multiple days chronologically in ascending order", () => {
+      const items = [
+        { date: new Date("2026-05-15T00:00:00Z"), glucoseValue: 130 },
+        { date: new Date("2026-05-01T00:00:00Z"), glucoseValue: 95 },
+        { date: new Date("2026-05-07T00:00:00Z"), glucoseValue: 115 },
+      ];
+      const result = calculateDailyTrends(items);
+
+      expect(result.map((p) => p.date)).toEqual(["2026-05-01", "2026-05-07", "2026-05-15"]);
+      expect(result[0].average).toBe(95);
+      expect(result[1].average).toBe(115);
+      expect(result[2].average).toBe(130);
+    });
+
+    it("rounds average correctly to 1 decimal place e.g. [100, 101] -> 100.5", () => {
+      const items = [
+        { date: "2026-05-05", glucoseValue: 100 },
+        { date: "2026-05-05", glucoseValue: 101 },
+      ];
+      const result = calculateDailyTrends(items);
+
+      expect(result[0].average).toBe(100.5);
     });
   });
 });

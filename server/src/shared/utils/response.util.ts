@@ -8,6 +8,8 @@ export interface PaginationMeta {
   totalPages?: number;
   hasNext?: boolean;
   hasPrev?: boolean;
+  hasNextPage?: boolean;
+  hasPreviousPage?: boolean;
   [key: string]: unknown;
 }
 
