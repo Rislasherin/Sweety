@@ -4,7 +4,10 @@
 [![Backend Tests](https://img.shields.io/badge/backend-279%20passing-blue)](#13-testing-and-code-quality)
 [![Frontend Tests](https://img.shields.io/badge/frontend-168%20passing-blue)](#13-testing-and-code-quality)
 
-Sweety is a full-stack web application designed for patients to track, manage, and understand their daily blood glucose levels.
+Sweety is a full-stack web application designed for patients to track, manage, and review their daily blood glucose levels across standard meal windows.
+
+> [!IMPORTANT]
+> **Medical Disclaimer**: Sweety is a personal tracking and reporting tool intended for self-monitoring. Glucose reference ranges, daily averages, and trend charts are provided solely for general informational reference and must not be interpreted as medical advice, clinical diagnoses, or treatment recommendations. Users should always consult a qualified healthcare professional regarding their target glucose levels and personal diabetes management plan.
 
 ---
 
@@ -31,9 +34,9 @@ Sweety is a full-stack web application designed for patients to track, manage, a
 
 ## 1. Project Introduction
 
-Managing diabetes or monitoring metabolic health requires consistent blood glucose logging across daily meal windows. When patients rely on physical logbooks or informal spreadsheets, records often suffer from missing meal context, duplicate entries, timezone confusion across calendar days, and difficulty reviewing longer-term trends.
+Managing diabetes and monitoring metabolic health requires consistent blood glucose logging across daily meal windows. When patients rely on physical logbooks or informal spreadsheets, records often suffer from missing meal context, duplicate entries, timezone confusion across calendar days, and difficulty reviewing longer-term trends.
 
-Sweety addresses these challenges by providing a structured four-slot daily tracking workflow, date-only calendar modeling stored at UTC midnight, user-specific data isolation, and database-level aggregate reporting. Patients can review their readings on a daily, month-to-date, or previous-month basis, visualized through accessible SVG charts.
+Sweety addresses these challenges by providing a structured four-slot daily tracking workflow, date-only calendar modeling stored at UTC midnight, user-specific data isolation, and database-level aggregate reporting. Patients can review their readings on a daily, month-to-date, or previous-month basis, visualized through accessible custom SVG charts.
 
 The application is built with Node.js, Express, React 19, TypeScript, PostgreSQL via Prisma ORM, and Tailwind CSS. The backend follows Clean Architecture principles with clear separation between domain logic, use cases, and infrastructure, while the frontend is organized using Atomic Design component patterns.
 
@@ -42,7 +45,7 @@ The application is built with Node.js, Express, React 19, TypeScript, PostgreSQL
 ## 2. Key Features
 
 ### Authentication and User Management
-- **Registration and Login**: Validates email format, normalizes email casing, and verifies password requirements.
+- **Registration and Login**: Validates email format, normalizes email casing, and enforces password requirements.
 - **Secure Password Storage**: Uses BCrypt password hashing.
 - **Token-Based Authentication**: Short-lived JWT access tokens paired with HttpOnly refresh cookies supporting automatic token rotation and revocation.
 - **User Data Isolation**: All database queries, readings, and aggregate reports are strictly scoped to the authenticated user ID.
@@ -59,7 +62,7 @@ The application is built with Node.js, Express, React 19, TypeScript, PostgreSQL
 - **Month-to-Date Report**: Calculates aggregate statistics from the 1st of the active month through the selected date.
 - **Previous Full-Month Report**: Calculates aggregate metrics across the full preceding calendar month, accounting for varying month lengths, leap years, and year rollovers.
 - **Monthly Glucose Trend Chart**: Responsive SVG line chart displaying daily glucose averages across active monthly reporting periods alongside neutral scale reference lines (70, 100, 140 mg/dL).
-- **Informational Reference Ranges**: Categorizes values into informational reference bands (Low: < 70, Normal: 70–99, Elevated: 100–125, High: ≥ 126 mg/dL) visualized with an SVG spread gauge.
+- **Informational Reference Ranges**: Displays general informational benchmarks (Low: < 70, Normal: 70–99, Elevated: 100–125, High: ≥ 126 mg/dL) visualized with an SVG spread gauge.
 - **Contextual Empty States**: Patient-friendly empty states guide users when viewing dates or periods without logged data.
 
 ### Developer and Infrastructure Features
@@ -178,7 +181,7 @@ Before installing, ensure the following tools are available on your system:
 
 - **Node.js**: `v20.x` or `v22.x` (`v22.12+` recommended)
 - **npm**: `v10.x` or higher
-- **PostgreSQL**: `v16` or `v17` (if running locally on `localhost:5432`)
+- **PostgreSQL**: `v16` or `v17` (if running locally)
 - **Docker & Docker Compose**: Optional, for containerized execution
 
 ---
@@ -208,52 +211,74 @@ cd ..
 
 ### Step 4: Configure environment files
 
-Create local configuration files from the provided templates:
+The repository includes three distinct `.env.example` templates designed for different deployment contexts. Create your local `.env` files from these templates before starting the application:
 
-**Backend configuration (`server/.env`):**
-```bash
-cp server/.env.example server/.env
-```
-Ensure `server/.env` contains your local PostgreSQL connection and demo settings:
-```ini
-PORT=5001
-NODE_ENV=development
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/sweety_db?schema=public"
-JWT_SECRET="your_secure_random_jwt_secret_at_least_32_characters"
-JWT_EXPIRATION="1d"
-JWT_ISSUER="sweety-api"
-JWT_AUDIENCE="sweety-client"
-CORS_ORIGIN="http://localhost:3001,http://127.0.0.1:3001,http://localhost:5173,http://127.0.0.1:5173"
-LOG_LEVEL="info"
+1. **Backend Local Configuration (`server/.env`):**
+   Used by the Express backend server during local native development.
+   ```bash
+   cp server/.env.example server/.env
+   ```
+   Configure the following variables in `server/.env`:
+   - `PORT`: HTTP port the backend binds to locally (e.g. `5001`).
+   - `NODE_ENV`: Runtime environment (`development`, `production`, or `test`).
+   - `DATABASE_URL`: PostgreSQL connection string (see database port instructions below).
+   - `JWT_SECRET`: Secret key for signing and verifying JWT tokens (minimum 32 characters).
+   - `JWT_EXPIRATION`: Token lifetime (e.g. `1d` or `15m`). Note that `server/src/main/config/env.ts` accepts both `JWT_EXPIRATION` and `JWT_EXPIRES_IN`.
+   - `JWT_ISSUER`: Token issuer claim (default: `sweety-api`).
+   - `JWT_AUDIENCE`: Token audience claim (default: `sweety-client`).
+   - `CORS_ORIGIN`: Comma-separated list of allowed browser origins (e.g. `http://localhost:5173,http://127.0.0.1:5173`).
+   - `LOG_LEVEL`: Pino logger level (`trace`, `debug`, `info`, `warn`, `error`).
+   - `DEMO_USER_EMAIL`: Email for the seeded demo patient (default: `demo@sweety.app`).
+   - `DEMO_USER_NAME`: Display name for the demo patient.
+   - `DEMO_USER_PASSWORD`: Password for the demo account (minimum 8 characters; never hardcoded in source).
 
-# Demo seeding configuration
-DEMO_USER_EMAIL="demo@sweety.app"
-DEMO_USER_NAME="Sweety Demo Patient"
-DEMO_USER_PASSWORD="development_demo_password_min_8_chars"
-```
+2. **Frontend Local Configuration (`client/.env`):**
+   Used by Vite during local client development.
+   ```bash
+   cp client/.env.example client/.env
+   ```
+   - `VITE_API_BASE_URL`: Base URL for API requests. For local development against a host backend running on port 5001, set `VITE_API_BASE_URL="http://localhost:5001/api"`.
 
-**Frontend configuration (`client/.env`):**
-```bash
-cp client/.env.example client/.env
-```
-```ini
-VITE_API_BASE_URL="http://localhost:5001/api"
-```
+3. **Root Docker Configuration (`.env`):**
+   Used by Docker Compose when running containerized services.
+   ```bash
+   cp .env.example .env
+   ```
+   Contains Compose container variables: `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `POSTGRES_PORT` (`5432` or mapped `5433`), `BACKEND_PORT` (`3000` or mapped `5001`), `FRONTEND_PORT` (`80` or mapped `3001`), `JWT_SECRET`, and `JWT_EXPIRES_IN`.
+
+### Database Port Instructions for Local Development
+
+When configuring `DATABASE_URL` in `server/.env`, ensure you connect to the appropriate port:
+
+- **When using Docker PostgreSQL from the local host backend:**
+  In Docker Compose, PostgreSQL is mapped to host port **`5433`** by default to prevent port conflicts with any local PostgreSQL instance. Configure your local `server/.env` connection string as:
+  ```ini
+  DATABASE_URL="postgresql://postgres:postgres@localhost:5433/sweety_db?schema=public"
+  ```
+- **When using a locally installed PostgreSQL instance:**
+  Use your actual native PostgreSQL host port, normally **`5432`**:
+  ```ini
+  DATABASE_URL="postgresql://postgres:postgres@localhost:5432/sweety_db?schema=public"
+  ```
+
+*(Do not confuse the PostgreSQL internal container port `5432` with its host-accessible published port `5433`.)*
 
 ### Step 5: Start or verify PostgreSQL
-Ensure PostgreSQL is running and that the target database exists:
+Ensure your target PostgreSQL database exists:
 ```bash
 # Example using psql
 psql -U postgres -c "CREATE DATABASE sweety_db;"
 ```
 
 ### Step 6: Apply Prisma migrations
+Run the Prisma migration tool to generate the schema tables:
 ```bash
 cd server
 npx prisma migrate deploy
 ```
 
 ### Step 7: Seed demo data
+Execute the idempotent seed script:
 ```bash
 npm run seed
 ```
@@ -285,7 +310,7 @@ The project includes an automated demo seed script (`server/prisma/seed.ts`):
 cd server
 npm run dev
 ```
-- **Local URL**: `http://localhost:5001` (when `PORT=5001` is configured)
+- **Local URL**: `http://localhost:5001` (when `PORT=5001` is configured in `server/.env`)
 - **Health Check**: `http://localhost:5001/api/health`
 
 ### Frontend Service
@@ -305,7 +330,7 @@ Navigate to `http://localhost:5173/login`:
 
 ## 11. Docker Compose
 
-Sweety provides a multi-container Docker Compose configuration (`docker-compose.yml`):
+Sweety provides a multi-container Docker Compose configuration (`docker-compose.yml`) orchestrating the PostgreSQL database, backend Express API, and frontend Nginx web server:
 
 ### Configuration
 Copy the root environment template:
@@ -346,7 +371,7 @@ docker compose down -v
 ```
 
 > [!NOTE]
-> **Container Verification Status**: The multi-stage Dockerfiles and Compose configurations have been verified via `docker-compose config` and container build stages. Live runtime container execution on this specific Windows host environment was blocked by the host Docker Desktop service being stopped.
+> **Container Verification Status**: The Docker Compose setup was successfully started and verified locally. The PostgreSQL, backend, and frontend containers were running with healthy status during verification.
 
 ---
 
@@ -436,38 +461,39 @@ Beyond the baseline tracking requirements, several features and architectural ad
    - Multi-stage container builds for backend (Node 22 Alpine runner with non-root user `sweety`) and frontend (Nginx Alpine SPA reverse proxy).
    - Automated database migration execution via `docker-entrypoint.sh` prior to server start.
    - Container health checks configured for all three services (`postgres`, `backend`, `frontend`).
+   - Verified locally with healthy running status across all three containers.
 
-*(Note: Advanced features such as Redis caching, BullMQ scheduled reminders, and Doctor roles were not implemented as part of this submission and are evaluated as future architectural considerations below.)*
+*(Note: Features such as Redis caching, BullMQ scheduled reminders, and Doctor roles were not implemented as part of this submission and are evaluated as future architectural considerations below.)*
 
 ---
 
 ## 15. Notes and Future Improvements
 
-### A. Data Insights and Personalization
-- **Flexible Date-Range Filtering**: Allow patients to select custom date ranges (e.g., past 7, 14, or 90 days) beyond preset calendar periods.
-- **Export Capabilities**: Provide patient-initiated CSV and PDF report exports suitable for sharing during clinician consultations.
-- **Personalized Targets**: Allow users to set personalized glycemic target ranges under clinical guidance while keeping default informational benchmarks.
+### Assumptions
 
-### B. AI-Assisted Health Insights
-- **Weekly Trend Summaries**: Generate clear, natural-language weekly summaries based on recorded readings (e.g., noting that post-dinner readings trend higher on weekends).
-- **Conversational Query Interface**: Allow patients to ask natural questions about their logged data (e.g., "What was my average fasting glucose over the last two weeks?").
-- **Safety Safeguards**: Strictly separate informational trend summaries from medical diagnoses. AI features must include clear non-diagnostic disclaimers and avoid treatment or dosage recommendations.
+The implementation of Sweety is based on the following verified architectural and domain assumptions:
 
-### C. Background Processing and Scalability
-- **Job Queues (BullMQ)**: If user-configured daily logging reminders or scheduled email digests are introduced, implement BullMQ backed by Redis for asynchronous job scheduling and retries.
-- **Report Caching (Redis)**: If analytical queries for historical periods experience high traffic, introduce Redis caching for immutable historical reports (e.g., finalized previous-month statistics).
-- **Simplicity First**: Retain direct database aggregation until production telemetry demonstrates a measured performance bottleneck.
+- **Predefined Daily Meal Slots**: Each calendar date supports four predefined reading slots: Morning fasting (`MORNING`), After breakfast (`AFTER_BREAKFAST`), After lunch (`AFTER_LUNCH`), and After dinner (`AFTER_DINNER`).
+- **Slot Uniqueness**: A user can add only one reading for each slot on a particular date. Duplicate slot attempts are rejected with HTTP 409, while existing records can be safely edited in place.
+- **Standardized Units**: All glucose readings are stored, calculated, and displayed uniformly in milligrams per deciliter (`mg/dL`).
+- **Date Handling**: Reading dates and report periods are handled using calendar dates (stored at UTC midnight via Prisma `@db.Date`), preventing local client timezone conversions from inadvertently shifting readings across calendar days.
+- **Tenant Isolation**: Users can access and manage only their own glucose readings and reports. All queries enforce strict user scoping through verified JWT credentials.
+- **Informational Reference Ranges**: Glucose reference ranges shown in the application are general informational benchmarks and must not be interpreted as a medical diagnosis or treatment directive.
 
-### D. Security and Operational Maturity
-- **Email Verification & Password Recovery**: Implement email confirmation workflows and secure time-limited password reset tokens.
-- **Automated CI/CD Pipeline**: Integrate automated test execution, linting, typechecking, and container image builds on GitHub pull requests.
-- **Observability**: Complement Pino structured logging with application metrics (e.g., Prometheus/OpenTelemetry) and error tracking.
+### Future Improvements
 
-### E. Accessibility and User Experience
-- **Screen Reader Enhancements**: Continue refining ARIA live regions and tabular data descriptions for screen-reader users reviewing dense charts.
-- **Keyboard Navigation**: Ensure full keyboard navigation coverage across all modal dialogs, date pickers, and period selection tabs.
+The following improvements represent realistic potential enhancements that build directly on the current architecture:
 
-**Implementation Priorities**: In a healthcare context, data correctness, security, and interface reliability take precedence. Architectural complexity—such as distributed queues, caching layers, or AI assistants—should be introduced incrementally based on validated user needs.
+- **AI-Based Insights**: Generate summaries of historical glucose readings to help users understand trends and recurring patterns.
+- **Ask About Your Readings**: Allow users to ask questions about their own reading history, such as comparing weekly averages or understanding changes over time. Responses should be grounded in their actual records.
+- **Improved Reports**: Add custom date filters, PDF/CSV exports, and more flexible weekly and monthly summaries.
+- **Reading History**: Maintain an audit history so users can review when readings were created, updated, or deleted.
+- **Reminders**: Add configurable reminders for regular glucose logging, using background jobs for scheduled notifications.
+- **Account Security**: Add email verification and password recovery.
+- **Accessibility**: Improve keyboard navigation, screen-reader support, and chart accessibility.
+
+> [!NOTE]
+> For AI-related features, numerical calculations would remain within the application, while AI would be used to explain results and summarize patterns. Any generated insights would be informational and would not replace medical advice.
 
 ---
 
