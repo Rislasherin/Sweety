@@ -1,8 +1,8 @@
 # Sweety – Blood Glucose Tracker
 
-[![Total Automated Tests](https://img.shields.io/badge/automated%20tests-405%20passing-brightgreen)](#testing-strategy)
-[![Backend Tests](https://img.shields.io/badge/backend%20tests-261%20passing-brightgreen)](#testing-strategy)
-[![Frontend Tests](https://img.shields.io/badge/frontend%20tests-144%20passing-brightgreen)](#testing-strategy)
+[![Total Automated Tests](https://img.shields.io/badge/automated%20tests-447%20passing-brightgreen)](#testing-strategy)
+[![Backend Tests](https://img.shields.io/badge/backend%20tests-279%20passing-brightgreen)](#testing-strategy)
+[![Frontend Tests](https://img.shields.io/badge/frontend%20tests-168%20passing-brightgreen)](#testing-strategy)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-22.x-green)](https://nodejs.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-blue)](https://www.postgresql.org/)
@@ -71,6 +71,7 @@ Managing diabetes and blood sugar fluctuations requires consistent, timely gluco
   - **Daily Report**: Aggregates highest, lowest, average (rounded to 1 decimal place), count, and chronological slot breakdown with an interactive, accessible SVG meal slot curve.
   - **Month-to-Date Report**: Calculates statistics from the 1st day of the selected month through the selected date inclusive using PostgreSQL aggregation (`_min`, `_max`, `_avg`, `_count`).
   - **Previous Full Month Report**: Seamlessly computes full calendar month ranges, handling leap-year February (29 days), non-leap February (28 days), 30/31-day months, and January rollbacks to December.
+  - **Monthly Daily-Average Glucose Trend Line Chart**: Visualizes patient glucose trajectory across active reporting periods (Month-to-Date and Previous Month) via an accessible, responsive SVG line chart with neutral scale reference lines (70, 100, 140 mg/dL), avoiding diagnostic classification of mixed daily averages.
   - **Glycemic Spread Gauge**: Custom accessible SVG spread gauge visualizing min, max, and average markers against clinical reference bands.
   - **Clinical Glycemic Bands**: Aligned with clinical diabetes guidelines:
     - **Hypoglycemic / Low**: $< 70\text{ mg/dL}$ (Amber pill)
@@ -409,7 +410,7 @@ All reading routes require `Authorization: Bearer <token>`.
 | Method | Endpoint | Params / Body | Description |
 |---|---|---|---|
 | `POST` | `/api/readings` | `{ date, slot, glucoseValue }` | Creates a reading (40–600 mg/dL, max 4/day) |
-| `GET` | `/api/readings` | Optional: `?date=YYYY-MM-DD` | Returns readings sorted by date DESC and slot |
+| `GET` | `/api/readings` | Optional: `?date=YYYY-MM-DD`, `?page=1&limit=10` | Returns paginated readings sorted by date DESC and slot |
 | `GET` | `/api/readings/:id` | Path: `:id` (UUID) | Retrieves a reading isolated to current user |
 | `PATCH` | `/api/readings/:id` | `{ date?, slot?, glucoseValue? }` | Updates reading values safely |
 | `DELETE` | `/api/readings/:id` | Path: `:id` (UUID) | Deletes a reading belonging to the user |
@@ -420,8 +421,8 @@ All report routes require `Authorization: Bearer <token>`.
 | Method | Endpoint | Query | Description |
 |---|---|---|---|
 | `GET` | `/api/reports/daily` | `?date=YYYY-MM-DD` | Daily stats + individual slot reading list |
-| `GET` | `/api/reports/month-to-date` | `?date=YYYY-MM-DD` | Aggregated stats from 1st of month to selected date |
-| `GET` | `/api/reports/previous-month` | `?date=YYYY-MM-DD` | Aggregated stats for the previous full calendar month |
+| `GET` | `/api/reports/month-to-date` | `?date=YYYY-MM-DD` | Aggregated stats + daily trend points from 1st of month to selected date |
+| `GET` | `/api/reports/previous-month` | `?date=YYYY-MM-DD` | Aggregated stats + daily trend points for previous calendar month |
 
 ---
 
@@ -455,15 +456,15 @@ sequenceDiagram
 
 ## Testing Strategy
 
-The project features a **100% passing automated test suite with 405 tests across 42 test files**:
+The project features a **100% passing automated test suite with 447 tests across 45 test files**:
 
-- **Backend (28 test files · 261 passed · 0 failed · 0 skipped)**:
+- **Backend (28 test files · 279 passed · 0 failed · 0 skipped)**:
   - **Unit Tests**: Domain logic, date calculations, category boundary tests (69, 70, 99, 100, 125, 126 mg/dL), leap year math, use cases with mock repositories, and Pino logger redaction.
   - **HTTP Integration Tests**: Full Express middleware pipeline testing with Supertest (authentication guards, validation, daily limit conflicts, race conditions, refresh cookies).
   - **Live PostgreSQL E2E Tests**: End-to-end integration tests validating against real PostgreSQL with foreign key cascades, unique constraints, and SQL aggregation.
-- **Frontend (14 test files · 144 passed · 0 failed · 0 skipped)**:
+- **Frontend (17 test files · 168 passed · 0 failed · 0 skipped)**:
   - **Unit & Validation Tests**: Form schemas, formatters, and utility functions.
-  - **Component & Integration Tests**: Atomic components, auth flows, readings CRUD, report period navigation, SVG charts, empty states, and custom hooks (`useReports`, `useReadings`, `useAuth`).
+  - **Component & Integration Tests**: Atomic components, auth flows, readings CRUD, pagination, report period navigation, monthly trend SVG charts, empty states, and custom hooks (`useReports`, `useReadings`, `useAuth`).
 
 ```bash
 # Run all backend tests
@@ -477,58 +478,61 @@ npm test --prefix client
 
 #### Backend Test Files (28 passed)
 ```text
- ✓ tests/unit/demoDataSeeding.spec.ts (23 tests)
- ✓ tests/unit/ReportUseCases.spec.ts (13 tests)
- ✓ tests/unit/ReadingUseCases.spec.ts (17 tests)
- ✓ tests/unit/dateUtils.spec.ts (17 tests)
- ✓ tests/unit/PrismaReadingRepository.spec.ts (16 tests)
- ✓ tests/unit/originGuardMiddleware.spec.ts (10 tests)
- ✓ tests/unit/errorMiddleware.spec.ts (8 tests)
- ✓ tests/unit/RefreshTokenUseCase.spec.ts (7 tests)
  ✓ tests/unit/JwtTokenService.spec.ts (7 tests)
+ ✓ tests/unit/RefreshTokenUseCase.spec.ts (7 tests)
+ ✓ tests/unit/PrismaReadingRepository.spec.ts (18 tests)
+ ✓ tests/unit/ReadingUseCases.spec.ts (20 tests)
+ ✓ tests/unit/demoDataSeeding.spec.ts (23 tests)
+ ✓ tests/unit/ReportUseCases.spec.ts (15 tests)
+ ✓ tests/unit/dateUtils.spec.ts (22 tests)
  ✓ tests/unit/RegisterUserUseCase.spec.ts (6 tests)
  ✓ tests/unit/LoginUserUseCase.spec.ts (6 tests)
- ✓ tests/unit/DependencyInjection.spec.ts (6 tests)
- ✓ tests/unit/authMiddleware.spec.ts (6 tests)
  ✓ tests/unit/PrismaUserRepository.spec.ts (5 tests)
- ✓ tests/unit/requestIdMiddleware.spec.ts (4 tests)
- ✓ tests/unit/response.util.spec.ts (4 tests)
+ ✓ tests/unit/originGuardMiddleware.spec.ts (10 tests)
  ✓ tests/unit/logger.spec.ts (4 tests)
- ✓ tests/unit/AppError.spec.ts (4 tests)
- ✓ tests/unit/asyncHandler.spec.ts (3 tests)
- ✓ tests/integration/ReadingRoutes.spec.ts (32 tests)
- ✓ tests/integration/ReportRoutes.spec.ts (16 tests)
- ✓ tests/integration/LoginUser.spec.ts (9 tests)
+ ✓ tests/unit/errorMiddleware.spec.ts (8 tests)
  ✓ tests/integration/RefreshTokenRoutes.spec.ts (7 tests)
- ✓ tests/integration/RegisterUser.spec.ts (7 tests)
- ✓ tests/e2e/RealDatabaseReading.spec.ts (8 tests)
- ✓ tests/e2e/RealDatabaseRegistration.spec.ts (7 tests)
- ✓ tests/e2e/RealDatabaseReport.spec.ts (5 tests)
+ ✓ tests/unit/authMiddleware.spec.ts (6 tests)
+ ✓ tests/unit/requestIdMiddleware.spec.ts (4 tests)
+ ✓ tests/integration/ReportRoutes.spec.ts (16 tests)
+ ✓ tests/unit/AppError.spec.ts (4 tests)
  ✓ tests/e2e/DemoDataReportsApi.spec.ts (4 tests)
+ ✓ tests/unit/response.util.spec.ts (4 tests)
+ ✓ tests/unit/asyncHandler.spec.ts (3 tests)
+ ✓ tests/integration/RegisterUser.spec.ts (7 tests)
+ ✓ tests/integration/ReadingRoutes.spec.ts (37 tests)
+ ✓ tests/e2e/RealDatabaseRegistration.spec.ts (7 tests)
+ ✓ tests/e2e/RealDatabaseReading.spec.ts (9 tests)
+ ✓ tests/e2e/RealDatabaseReport.spec.ts (5 tests)
+ ✓ tests/unit/DependencyInjection.spec.ts (6 tests)
+ ✓ tests/integration/LoginUser.spec.ts (9 tests)
 
  Test Files  28 passed (28)
-      Tests  261 passed (261)
+      Tests  279 passed (279)
 ```
 
-#### Frontend Test Files (14 passed)
+#### Frontend Test Files (17 passed)
 ```text
  ✓ src/test/readingValidation.spec.ts (23 tests)
- ✓ src/test/readingsFlow.spec.tsx (19 tests)
- ✓ src/test/reportUtils.spec.ts (15 tests)
- ✓ src/test/authValidation.spec.ts (14 tests)
- ✓ src/test/reportsFlow.spec.tsx (13 tests)
- ✓ src/test/authFlow.spec.tsx (10 tests)
- ✓ src/test/formatters.spec.ts (9 tests)
+ ✓ src/test/atoms.spec.tsx (4 tests)
+ ✓ src/test/uiComponents.spec.tsx (7 tests)
+ ✓ src/test/readingsApiIntegration.spec.ts (6 tests)
  ✓ src/test/authService.spec.ts (9 tests)
  ✓ src/test/useReports.spec.ts (6 tests)
- ✓ src/test/readingsApiIntegration.spec.ts (6 tests)
- ✓ src/test/readingService.spec.ts (6 tests)
+ ✓ src/test/readingPagination.spec.tsx (7 tests)
+ ✓ src/test/navigationFlow.spec.tsx (4 tests)
+ ✓ src/test/reportsFlow.spec.tsx (16 tests)
+ ✓ src/test/readingsFlow.spec.tsx (21 tests)
+ ✓ src/test/authFlow.spec.tsx (10 tests)
+ ✓ src/test/reportUtils.spec.ts (15 tests)
  ✓ src/test/apiError.spec.ts (6 tests)
+ ✓ src/test/authValidation.spec.ts (14 tests)
+ ✓ src/test/formatters.spec.ts (9 tests)
  ✓ src/test/reportService.spec.ts (4 tests)
- ✓ src/test/atoms.spec.tsx (4 tests)
+ ✓ src/test/readingService.spec.ts (7 tests)
 
- Test Files  14 passed (14)
-      Tests  144 passed (144)
+ Test Files  17 passed (17)
+      Tests  168 passed (168)
 ```
 
 ---
