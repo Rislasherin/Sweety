@@ -1,17 +1,21 @@
-import React from 'react'
-import { Link } from 'react-router-dom'
+import React, { useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { EmptyState } from '@/components/molecules/EmptyState'
 
 export const NotFoundPage: React.FC = () => {
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    document.title = 'Sweety — Page Not Found'
+  }, [])
+
   return (
-    <div className="py-16">
+    <div className="py-16 max-w-lg mx-auto">
       <EmptyState
         title="Page Not Found"
         description="The page you are looking for does not exist or may have been moved."
         actionLabel="Back to Home"
-        onAction={() => {
-          window.location.href = '/'
-        }}
+        onAction={() => navigate('/')}
         icon={
           <svg
             className="w-6 h-6 text-slate-400"

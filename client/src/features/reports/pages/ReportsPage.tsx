@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useReports } from '../hooks/useReports'
 import { ReportsTemplate } from '../components/templates/ReportsTemplate'
@@ -17,6 +17,10 @@ export const ReportsPage: React.FC = () => {
     refetch,
     clearError,
   } = useReports()
+
+  useEffect(() => {
+    document.title = 'Sweety — Reports & Analytics'
+  }, [])
 
   return (
     <ReportsTemplate

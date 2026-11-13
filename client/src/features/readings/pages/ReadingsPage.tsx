@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useReadings } from '../hooks/useReadings'
 import type { CreateReadingDTO, Reading, UpdateReadingDTO } from '../types'
 import { ReadingsTemplate } from '../components/templates/ReadingsTemplate'
@@ -19,6 +19,10 @@ export const ReadingsPage: React.FC = () => {
     updateReading,
     deleteReading,
   } = useReadings()
+
+  useEffect(() => {
+    document.title = 'Sweety — Blood Glucose Readings'
+  }, [])
 
   // Form modal state (Add / Edit)
   const [isFormModalOpen, setIsFormModalOpen] = useState(false)

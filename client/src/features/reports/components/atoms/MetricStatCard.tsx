@@ -38,7 +38,7 @@ export const MetricStatCard: React.FC<MetricStatCardProps> = ({
         </div>
 
         <div className="flex items-baseline justify-between gap-2 mt-1">
-          <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+          <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight tabular-nums">
             {value}
           </div>
           {badgeText && (
