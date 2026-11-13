@@ -47,7 +47,7 @@ export const ReadingEmptyState: React.FC<ReadingEmptyStateProps> = ({
   return (
     <EmptyState
       title="No Glucose Readings Yet"
-      description="Start monitoring your metabolic health. Record your daily glucose readings for morning, after breakfast, after lunch, or after dinner."
+      description="No readings yet. Add your first reading to start tracking your glucose across key meal slots."
       actionLabel="+ Add Your First Reading"
       onAction={onAddReading}
       icon={

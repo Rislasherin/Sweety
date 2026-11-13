@@ -34,7 +34,7 @@ export const ReportSummarySection: React.FC<ReportSummarySectionProps> = ({
         value={formatStatValue(average)}
         badgeText={avgLabel}
         badgeVariant={avgVariant}
-        subtext="Clinical benchmark for metabolic balance"
+        subtext="Overall average for this period"
         icon={
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path
@@ -51,7 +51,7 @@ export const ReportSummarySection: React.FC<ReportSummarySectionProps> = ({
       <MetricStatCard
         label="Highest Reading"
         value={formatStatValue(highest)}
-        subtext="Peak recorded glycemic event"
+        subtext="Highest reading recorded"
         badgeText={highest !== null && highest >= 126 ? 'High' : undefined}
         badgeVariant={highest !== null && highest >= 126 ? 'danger' : 'neutral'}
         icon={
@@ -75,7 +75,7 @@ export const ReportSummarySection: React.FC<ReportSummarySectionProps> = ({
       <MetricStatCard
         label="Lowest Reading"
         value={formatStatValue(lowest)}
-        subtext="Nadir recorded glycemic event"
+        subtext="Lowest reading recorded"
         badgeText={lowest !== null && lowest < 70 ? 'Low' : undefined}
         badgeVariant={lowest !== null && lowest < 70 ? 'warning' : 'neutral'}
         icon={
