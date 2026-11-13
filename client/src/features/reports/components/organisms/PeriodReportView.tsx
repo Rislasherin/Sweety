@@ -7,7 +7,6 @@ import {
   getReportClinicalCategory,
   getReportCategoryVariant,
   getReportCategoryLabel,
-  formatStatValue,
 } from '../../utils/reportUtils'
 import { ReportSummarySection } from './ReportSummarySection'
 import { GlycemicSpreadGauge } from '../molecules/GlycemicSpreadGauge'
@@ -75,37 +74,25 @@ export const PeriodReportView: React.FC<PeriodReportViewProps> = ({
             <CardContent className="pt-0">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 text-xs">
                 <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100">
-                  <span className="font-semibold text-slate-700 block mb-1">Aggregation Range</span>
+                  <span className="font-semibold text-slate-700 block mb-1">Period Window</span>
                   <p className="text-slate-600">
-                    From <span className="font-medium text-slate-900">{report.startDate}</span> to{' '}
+                    Covering <span className="font-medium text-slate-900">{report.startDate}</span> through{' '}
                     <span className="font-medium text-slate-900">{report.endDate}</span>.
                   </p>
                 </div>
 
                 <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100">
-                  <span className="font-semibold text-slate-700 block mb-1">Glycemic Range</span>
+                  <span className="font-semibold text-slate-700 block mb-1">Target Reference</span>
                   <p className="text-slate-600">
-                    Spans from{' '}
-                    <span className="font-medium text-slate-900">
-                      {formatStatValue(report.lowest)}
-                    </span>{' '}
-                    to{' '}
-                    <span className="font-medium text-slate-900">
-                      {formatStatValue(report.highest)}
-                    </span>
-                    .
+                    Typical targets are <span className="font-medium text-slate-900">70–99 mg/dL</span> for fasting and{' '}
+                    <span className="font-medium text-slate-900">&lt; 140 mg/dL</span> post-meal.
                   </p>
                 </div>
 
                 <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-100">
-                  <span className="font-semibold text-slate-700 block mb-1">Clinical Status</span>
+                  <span className="font-semibold text-slate-700 block mb-1">Clinical Note</span>
                   <p className="text-slate-600">
-                    Mean glucose is{' '}
-                    <span className="font-medium text-slate-900">
-                      {formatStatValue(report.average)}
-                    </span>
-                    , categorized as{' '}
-                    <span className="font-semibold text-slate-900">{avgLabel}</span>.
+                    These summary statistics help evaluate overall metabolic stability. Always discuss trends with your physician.
                   </p>
                 </div>
               </div>
