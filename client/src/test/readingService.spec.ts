@@ -53,6 +53,40 @@ describe('readingService', () => {
     expect(result).toEqual([mockReading])
   })
 
+  it('getReadings supports pagination parameters and returns pagination metadata', async () => {
+    const mockResponse = {
+      data: {
+        success: true,
+        message: 'Readings retrieved successfully',
+        data: [mockReading],
+        pagination: {
+          page: 2,
+          limit: 10,
+          total: 25,
+          totalPages: 3,
+          hasNextPage: true,
+          hasPreviousPage: true,
+        },
+      },
+    }
+    vi.spyOn(apiClient, 'get').mockResolvedValueOnce(mockResponse)
+
+    const result = await readingService.getReadings({ page: 2, limit: 10, date: '2026-11-11' })
+
+    expect(apiClient.get).toHaveBeenCalledWith('/readings', {
+      params: { date: '2026-11-11', page: 2, limit: 10 },
+    })
+    expect(result).toHaveLength(1)
+    expect(result.pagination).toEqual({
+      page: 2,
+      limit: 10,
+      total: 25,
+      totalPages: 3,
+      hasNextPage: true,
+      hasPreviousPage: true,
+    })
+  })
+
   it('getReadingById fetches single reading by ID', async () => {
     const mockResponse = {
       data: {

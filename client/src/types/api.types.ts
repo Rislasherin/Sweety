@@ -3,12 +3,15 @@ export interface PaginationMeta {
   limit: number
   total: number
   totalPages: number
+  hasNextPage?: boolean
+  hasPreviousPage?: boolean
 }
 
 export interface ApiResponse<T = unknown> {
   success: boolean
   message: string
   data: T
+  pagination?: PaginationMeta
   meta?: {
     timestamp?: string
     pagination?: PaginationMeta

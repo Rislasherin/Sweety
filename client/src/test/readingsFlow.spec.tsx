@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { GlucoseValue } from '../features/readings/components/atoms/GlucoseValue'
 import { ReadingSlotBadge } from '../features/readings/components/atoms/ReadingSlotBadge'
@@ -343,6 +343,95 @@ describe('Glucose Readings UI Flow & Components', () => {
         expect(
           screen.getByText(/a reading for this slot already exists on this date/i)
         ).toBeInTheDocument()
+      })
+    })
+
+    it('renders pagination controls and navigates to the next page', async () => {
+      const user = userEvent.setup()
+      const paginatedPage1 = Object.assign([sampleReading], {
+        readings: [sampleReading],
+        pagination: {
+          page: 1,
+          limit: 1,
+          total: 2,
+          totalPages: 2,
+          hasNextPage: true,
+          hasPreviousPage: false,
+        },
+      })
+      const sampleReading2: Reading = {
+        ...sampleReading,
+        id: 'reading-integration-2',
+        slot: 'AFTER_LUNCH',
+        glucoseValue: 135,
+      }
+      const paginatedPage2 = Object.assign([sampleReading2], {
+        readings: [sampleReading2],
+        pagination: {
+          page: 2,
+          limit: 1,
+          total: 2,
+          totalPages: 2,
+          hasNextPage: false,
+          hasPreviousPage: true,
+        },
+      })
+
+      const getSpy = vi
+        .spyOn(readingService, 'getReadings')
+        .mockResolvedValueOnce(paginatedPage1)
+        .mockResolvedValueOnce(paginatedPage2)
+
+      render(<ReadingsPage />)
+
+      await waitFor(() => {
+        expect(screen.getByText('Page 1 of 2')).toBeInTheDocument()
+        expect(screen.getByText('Morning')).toBeInTheDocument()
+      })
+
+      const nextButton = screen.getByRole('button', { name: /next page/i })
+      expect(nextButton).not.toBeDisabled()
+      await user.click(nextButton)
+
+      await waitFor(() => {
+        expect(screen.getByText('Page 2 of 2')).toBeInTheDocument()
+        expect(screen.getByText('After Lunch')).toBeInTheDocument()
+      })
+
+      expect(getSpy).toHaveBeenCalledTimes(2)
+    })
+
+    it('resets page to 1 when date filter is changed', async () => {
+      const paginatedResult = Object.assign([sampleReading], {
+        readings: [sampleReading],
+        pagination: {
+          page: 2,
+          limit: 1,
+          total: 2,
+          totalPages: 2,
+          hasNextPage: false,
+          hasPreviousPage: true,
+        },
+      })
+
+      const getSpy = vi.spyOn(readingService, 'getReadings').mockResolvedValue(paginatedResult)
+
+      render(<ReadingsPage />)
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/filter readings by date/i)).toBeInTheDocument()
+      })
+
+      const dateInput = screen.getByLabelText(/filter readings by date/i)
+      fireEvent.change(dateInput, { target: { value: '2026-11-12' } })
+
+      await waitFor(() => {
+        expect(getSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            page: 1,
+            date: '2026-11-12',
+          })
+        )
       })
     })
   })

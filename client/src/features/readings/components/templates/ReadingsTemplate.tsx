@@ -5,12 +5,15 @@ import { Spinner } from '@/components/atoms/Spinner'
 import type { CreateReadingDTO, Reading, UpdateReadingDTO } from '../../types'
 import { ReadingEmptyState } from '../molecules/ReadingEmptyState'
 import { ReadingDeleteDialog } from '../molecules/ReadingDeleteDialog'
+import { ReadingPagination } from '../molecules/ReadingPagination'
 import { ReadingList } from '../organisms/ReadingList'
 import { ReadingManagementHeader } from '../organisms/ReadingManagementHeader'
 import { ReadingModal } from '../organisms/ReadingModal'
+import type { PaginationMeta } from '@/types/api.types'
 
 export interface ReadingsTemplateProps {
   readings: Reading[]
+  pagination?: PaginationMeta
   isLoading: boolean
   isMutating: boolean
   fetchError: string | null
@@ -24,6 +27,7 @@ export interface ReadingsTemplateProps {
   readingToDelete: Reading | null
   // Handlers
   onDateFilterChange: (date: string) => void
+  onPageChange?: (page: number) => void
   onAddClick: () => void
   onEditClick: (reading: Reading) => void
   onDeleteClick: (reading: Reading) => void
@@ -37,6 +41,7 @@ export interface ReadingsTemplateProps {
 
 export const ReadingsTemplate: React.FC<ReadingsTemplateProps> = ({
   readings,
+  pagination,
   isLoading,
   isMutating,
   fetchError,
@@ -48,6 +53,7 @@ export const ReadingsTemplate: React.FC<ReadingsTemplateProps> = ({
   isDeleteDialogOpen,
   readingToDelete,
   onDateFilterChange,
+  onPageChange,
   onAddClick,
   onEditClick,
   onDeleteClick,
@@ -107,12 +113,21 @@ export const ReadingsTemplate: React.FC<ReadingsTemplateProps> = ({
           onClearFilter={() => onDateFilterChange('')}
         />
       ) : (
-        <ReadingList
-          readings={readings}
-          disabled={isMutating}
-          onEdit={onEditClick}
-          onDelete={onDeleteClick}
-        />
+        <div className="space-y-4">
+          <ReadingList
+            readings={readings}
+            disabled={isMutating}
+            onEdit={onEditClick}
+            onDelete={onDeleteClick}
+          />
+          {pagination && pagination.total > 0 && onPageChange && (
+            <ReadingPagination
+              pagination={pagination}
+              onPageChange={onPageChange}
+              disabled={isLoading || isMutating}
+            />
+          )}
+        </div>
       )}
 
       {/* Add / Edit Reading Modal */}
