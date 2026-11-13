@@ -2,10 +2,6 @@ import React, { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/atoms/Card'
 import { Badge } from '@/components/atoms/Badge'
 import type { DailyTrendPoint } from '../../types'
-import {
-  getReportClinicalCategory,
-  getReportCategoryLabel,
-} from '../../utils/reportUtils'
 
 export interface MonthlyTrendChartProps {
   dailyTrends: DailyTrendPoint[]
@@ -73,10 +69,8 @@ export const MonthlyTrendChart: React.FC<MonthlyTrendChartProps> = ({
     return padding.left + (index / (count - 1)) * chartWidth
   }
 
-  // Key reference line heights
-  const normalLowY = getY(70)
-  const normalHighY = getY(100)
-  const highThresholdY = getY(126)
+  // Visual scale guide lines (clear numeric levels for visual tracking)
+  const yTicks = [70, 100, 140].filter((val) => val >= yMin && val <= yMax)
 
   // Plotted points
   const points = dailyTrends.map((item, index) => {
@@ -86,7 +80,6 @@ export const MonthlyTrendChart: React.FC<MonthlyTrendChartProps> = ({
       item,
       x,
       y,
-      category: getReportClinicalCategory(item.average),
     }
   })
 
@@ -99,7 +92,7 @@ export const MonthlyTrendChart: React.FC<MonthlyTrendChartProps> = ({
       ? `${points[0].x},${height - padding.bottom} ${polylinePoints} ${points[points.length - 1].x},${height - padding.bottom}`
       : ''
 
-  // Format short date helper e.g. "2026-05-01" -> "May 1" or "05/01"
+  // Format short date helper e.g. "2026-05-01" -> "May 1"
   const formatShortDate = (dateStr: string): string => {
     const parts = dateStr.split('-')
     if (parts.length === 3) {
@@ -143,19 +136,15 @@ export const MonthlyTrendChart: React.FC<MonthlyTrendChartProps> = ({
             </CardDescription>
           </div>
 
-          {/* Reference legends */}
-          <div className="flex flex-wrap items-center gap-2 text-2xs text-slate-500">
-            <span className="inline-flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-              Normal (70–99)
+          {/* Clean Series Legends */}
+          <div className="flex flex-wrap items-center gap-3 text-2xs text-slate-500">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full border-2 border-teal-600 bg-white" />
+              Daily Average
             </span>
-            <span className="inline-flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-              Elevated (100–125)
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
-              High (≥ 126)
+            <span className="inline-flex items-center gap-1.5">
+              <span className="w-4 h-0.5 bg-teal-600 rounded-full" />
+              Trend Progression
             </span>
           </div>
         </div>
@@ -171,9 +160,8 @@ export const MonthlyTrendChart: React.FC<MonthlyTrendChartProps> = ({
                 <th>Date</th>
                 <th>Daily Average (mg/dL)</th>
                 <th>Readings Count</th>
-                <th>Highest</th>
-                <th>Lowest</th>
-                <th>Clinical Reference</th>
+                <th>Day Highest</th>
+                <th>Day Lowest</th>
               </tr>
             </thead>
             <tbody>
@@ -184,7 +172,6 @@ export const MonthlyTrendChart: React.FC<MonthlyTrendChartProps> = ({
                   <td>{d.count}</td>
                   <td>{d.highest}</td>
                   <td>{d.lowest}</td>
-                  <td>{getReportCategoryLabel(getReportClinicalCategory(d.average))}</td>
                 </tr>
               ))}
             </tbody>
@@ -207,105 +194,38 @@ export const MonthlyTrendChart: React.FC<MonthlyTrendChartProps> = ({
             <defs>
               {/* Gradient for area fill beneath line */}
               <linearGradient id="trendAreaGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#0d9488" stopOpacity="0.22" />
-                <stop offset="60%" stopColor="#0d9488" stopOpacity="0.08" />
+                <stop offset="0%" stopColor="#0d9488" stopOpacity="0.20" />
+                <stop offset="60%" stopColor="#0d9488" stopOpacity="0.06" />
                 <stop offset="100%" stopColor="#0d9488" stopOpacity="0.00" />
-              </linearGradient>
-
-              {/* Normal band gradient (70 - 100 mg/dL) */}
-              <linearGradient id="trendNormalBandGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#10b981" stopOpacity="0.10" />
-                <stop offset="100%" stopColor="#10b981" stopOpacity="0.03" />
-              </linearGradient>
-
-              {/* Elevated band gradient (100 - 126 mg/dL) */}
-              <linearGradient id="trendElevatedBandGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.08" />
-                <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.02" />
               </linearGradient>
             </defs>
 
-            {/* Normal Range Reference Band (70 - 100 mg/dL) */}
-            <rect
-              x={padding.left}
-              y={normalHighY}
-              width={chartWidth}
-              height={Math.max(0, normalLowY - normalHighY)}
-              fill="url(#trendNormalBandGrad)"
-            />
-
-            {/* Elevated Range Reference Band (100 - 126 mg/dL) */}
-            <rect
-              x={padding.left}
-              y={highThresholdY}
-              width={chartWidth}
-              height={Math.max(0, normalHighY - highThresholdY)}
-              fill="url(#trendElevatedBandGrad)"
-            />
-
-            {/* Threshold Guide Lines */}
-            {/* High Threshold: 126 mg/dL */}
-            <line
-              x1={padding.left}
-              y1={highThresholdY}
-              x2={width - padding.right}
-              y2={highThresholdY}
-              stroke="#f43f5e"
-              strokeDasharray="4 4"
-              strokeWidth="1"
-              strokeOpacity="0.6"
-            />
-            <text
-              x={width - padding.right + 5}
-              y={highThresholdY + 3}
-              fontSize="9"
-              fill="#e11d48"
-              fontWeight="600"
-            >
-              126
-            </text>
-
-            {/* Normal Upper Threshold: 100 mg/dL */}
-            <line
-              x1={padding.left}
-              y1={normalHighY}
-              x2={width - padding.right}
-              y2={normalHighY}
-              stroke="#10b981"
-              strokeDasharray="3 3"
-              strokeWidth="1"
-              strokeOpacity="0.7"
-            />
-            <text
-              x={width - padding.right + 5}
-              y={normalHighY + 3}
-              fontSize="9"
-              fill="#059669"
-              fontWeight="600"
-            >
-              100
-            </text>
-
-            {/* Low Threshold: 70 mg/dL */}
-            <line
-              x1={padding.left}
-              y1={normalLowY}
-              x2={width - padding.right}
-              y2={normalLowY}
-              stroke="#f59e0b"
-              strokeDasharray="3 3"
-              strokeWidth="1"
-              strokeOpacity="0.6"
-            />
-            <text
-              x={width - padding.right + 5}
-              y={normalLowY + 3}
-              fontSize="9"
-              fill="#d97706"
-              fontWeight="600"
-            >
-              70
-            </text>
+            {/* Horizontal Scale Guide Lines */}
+            {yTicks.map((tickVal) => {
+              const tickY = getY(tickVal)
+              return (
+                <g key={`y-guide-${tickVal}`}>
+                  <line
+                    x1={padding.left}
+                    y1={tickY}
+                    x2={width - padding.right}
+                    y2={tickY}
+                    stroke="#e2e8f0"
+                    strokeDasharray="3 3"
+                    strokeWidth="1"
+                  />
+                  <text
+                    x={width - padding.right + 5}
+                    y={tickY + 3}
+                    fontSize="9"
+                    fill="#64748b"
+                    fontWeight="500"
+                  >
+                    {tickVal}
+                  </text>
+                </g>
+              )
+            })}
 
             {/* Y-axis baseline */}
             <line
@@ -384,11 +304,6 @@ export const MonthlyTrendChart: React.FC<MonthlyTrendChartProps> = ({
 
             {/* Data Point Markers */}
             {points.map((p) => {
-              let nodeColor = '#10b981' // normal
-              if (p.category === 'LOW') nodeColor = '#f59e0b'
-              else if (p.category === 'ELEVATED') nodeColor = '#eab308'
-              else if (p.category === 'HIGH') nodeColor = '#ef4444'
-
               const isHovered = hoveredPoint?.date === p.item.date
               const showAlwaysTag = points.length <= 10
 
@@ -419,13 +334,13 @@ export const MonthlyTrendChart: React.FC<MonthlyTrendChartProps> = ({
                   {/* Invisible hit area for easier mouse targeting */}
                   <circle cx={p.x} cy={p.y} r="14" fill="transparent" />
 
-                  {/* Outer pulse / hover ring */}
+                  {/* Outer hover ring */}
                   <circle
                     cx={p.x}
                     cy={p.y}
                     r={isHovered ? 9 : 6}
-                    fill={nodeColor}
-                    fillOpacity={isHovered ? 0.3 : 0.15}
+                    fill="#0d9488"
+                    fillOpacity={isHovered ? 0.28 : 0.14}
                     className="transition-all duration-150"
                   />
 
@@ -435,7 +350,7 @@ export const MonthlyTrendChart: React.FC<MonthlyTrendChartProps> = ({
                     cy={p.y}
                     r={isHovered ? 4.5 : 3.5}
                     fill="#ffffff"
-                    stroke={nodeColor}
+                    stroke="#0d9488"
                     strokeWidth={isHovered ? 2.5 : 2}
                     className="transition-all duration-150"
                   />
@@ -460,22 +375,22 @@ export const MonthlyTrendChart: React.FC<MonthlyTrendChartProps> = ({
             {/* Hovered / Focused Tooltip rendered inside SVG */}
             {hoveredPoint && hoveredCoords && (
               <g
-                transform={`translate(${Math.max(50, Math.min(width - 130, hoveredCoords.x - 60))}, ${Math.max(10, hoveredCoords.y - 55)})`}
+                transform={`translate(${Math.max(50, Math.min(width - 140, hoveredCoords.x - 70))}, ${Math.max(10, hoveredCoords.y - 55)})`}
                 className="pointer-events-none"
               >
                 <rect
-                  width="120"
+                  width="140"
                   height="45"
                   rx="6"
                   fill="#0f172a"
                   fillOpacity="0.92"
                   filter="drop-shadow(0 2px 4px rgba(0,0,0,0.15))"
                 />
-                <text x="60" y="16" textAnchor="middle" fontSize="10" fill="#94a3b8">
-                  {formatShortDate(hoveredPoint.date)} ({hoveredPoint.count} test{hoveredPoint.count !== 1 ? 's' : ''})
+                <text x="70" y="16" textAnchor="middle" fontSize="10" fill="#94a3b8">
+                  {formatShortDate(hoveredPoint.date)} • {hoveredPoint.count} test{hoveredPoint.count !== 1 ? 's' : ''}
                 </text>
                 <text
-                  x="60"
+                  x="70"
                   y="34"
                   textAnchor="middle"
                   fontSize="12"
@@ -489,16 +404,14 @@ export const MonthlyTrendChart: React.FC<MonthlyTrendChartProps> = ({
           </svg>
         </div>
 
-        {/* Informational Clinical Guidelines Disclaimer */}
-        <div className="mt-3 pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-2xs text-slate-500">
+        {/* Clinical Interpretation Guidance */}
+        <div className="mt-3 pt-3 border-t border-slate-100 text-2xs text-slate-500">
           <p>
-            <span className="font-semibold text-slate-600">Reference Guidelines:</span> Fasting normal: 70–99 mg/dL | Elevated: 100–125 mg/dL | High: ≥ 126 mg/dL.
-          </p>
-          <p className="text-slate-400">
-            Averages are clinical reference guidelines, not medical diagnoses.
+            <span className="font-semibold text-slate-700">Clinical Note:</span> Daily averages aggregate measurements across various meal slots (fasting and post-meal). Target ranges vary individually by meal timing and treatment plan. Consult your healthcare team for your personalized glycemic goals.
           </p>
         </div>
       </CardContent>
     </Card>
   )
 }
+

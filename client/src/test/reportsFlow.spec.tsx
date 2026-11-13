@@ -205,9 +205,8 @@ describe('Reports & Analytics UI Flow & Components', () => {
       expect(screen.getByRole('img')).toBeInTheDocument()
       expect(screen.getByText('Month-to-Date Daily Glucose Trend')).toBeInTheDocument()
       expect(screen.getByText('3 Active Days')).toBeInTheDocument()
-      expect(screen.getAllByText(/Normal \(70–99\)/i).length).toBeGreaterThanOrEqual(1)
-      expect(screen.getAllByText(/Elevated \(100–125\)/i).length).toBeGreaterThanOrEqual(1)
-      expect(screen.getAllByText(/High \(≥ 126\)/i).length).toBeGreaterThanOrEqual(1)
+      expect(screen.getByText('Daily Average')).toBeInTheDocument()
+      expect(screen.getByText('Trend Progression')).toBeInTheDocument()
       expect(
         screen.getByText('Month-to-Date daily glucose averages for Nov 1, 2026 – Nov 10, 2026')
       ).toBeInTheDocument()
