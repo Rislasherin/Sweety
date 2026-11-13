@@ -194,7 +194,7 @@ sweety/
 │   │   ├── shared/                 # Errors, constants, response utilities
 │   │   └── main/                   # Composition root (app.ts) & server.ts
 │   └── tests/
-│       ├── unit/                   # Isolated unit test suites (23 test files)
+│       ├── unit/                   # Isolated unit test suites (19 test files)
 │       ├── integration/            # Supertest route integration suites (5 test files)
 │       └── e2e/                    # Real PostgreSQL database E2E tests (4 test files)
 │
@@ -216,7 +216,7 @@ sweety/
 │       │   └── home/               # Landing page and home dashboard
 │       ├── routes/                 # Protected and public-only routing
 │       ├── services/               # Axios API client with token interceptors
-│       └── test/                   # Client Vitest suites (14 test files)
+│       └── test/                   # Client Vitest suites (17 test files)
 │
 ├── docs/
 │   └── screenshots/                # Application verification screenshots
@@ -564,9 +564,9 @@ docker compose up -d --build
 ```
 
 ### Services
-- **Database (`postgres`)**: PostgreSQL 17 exposed on host port `5432` (or configured `POSTGRES_PORT`).
-- **Backend (`backend`)**: Express 5.3 multi-stage Node 22 Alpine container running on port `3000`.
-- **Frontend (`frontend`)**: Vite production bundle served by Nginx Alpine on port `80` with SPA fallback routing.
+- **Database (`postgres`)**: PostgreSQL 17 exposed on host port `5433` (or configured via `POSTGRES_PORT`).
+- **Backend (`backend`)**: Express 5.3 multi-stage Node 22 Alpine container exposed on host port `5001` (container port `3000`, or configured via `BACKEND_PORT`).
+- **Frontend (`frontend`)**: Vite production bundle served by Nginx Alpine exposed on host port `3001` (container port `80`, or configured via `FRONTEND_PORT`) with SPA fallback routing and `/api` reverse proxying.
 
 ---
 
