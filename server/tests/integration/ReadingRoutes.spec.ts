@@ -4,6 +4,8 @@ import { createApp } from "@main/app";
 import {
   type IReadingRepository,
   type GlucoseStatistics,
+  type PaginatedReadingsResult,
+  type ReadingPaginationOptions,
 } from "@domain/repositories/IReadingRepository";
 import { type IUserRepository } from "@domain/repositories/IUserRepository";
 import { Reading } from "@domain/entities/Reading";
@@ -57,6 +59,17 @@ class InMemoryReadingRepository implements IReadingRepository {
       if (dateDiff !== 0) return dateDiff;
       return READING_SLOT_ORDER[a.slot] - READING_SLOT_ORDER[b.slot];
     });
+  }
+
+  async findPaginatedByUserId(
+    userId: string,
+    options: ReadingPaginationOptions,
+  ): Promise<PaginatedReadingsResult> {
+    const all = await this.findByUserId(userId, options.date);
+    const total = all.length;
+    const skip = Math.max(0, (options.page - 1) * options.limit);
+    const readings = all.slice(skip, skip + options.limit);
+    return { readings, total };
   }
 
   async findByUserIdDateAndSlot(
@@ -520,7 +533,7 @@ describe("Glucose Reading CRUD API (HTTP Integration)", () => {
         .send({ date: "2026-05-10", slot: "MORNING", glucoseValue: 100 });
     });
 
-    it("returns authenticated user's readings sorted by date DESC and slot order", async () => {
+    it("returns authenticated user's readings sorted by date DESC and slot order with default pagination", async () => {
       const response = await request(app)
         .get("/api/readings")
         .set("Authorization", `Bearer ${token1}`)
@@ -536,6 +549,134 @@ describe("Glucose Reading CRUD API (HTTP Integration)", () => {
       expect(response.body.data[1].date).toBe("2026-05-10");
       expect(response.body.data[1].slot).toBe("AFTER_DINNER");
       expect(response.body.data[2].date).toBe("2026-05-09");
+
+      expect(response.body.pagination).toMatchObject({
+        page: 1,
+        limit: 20,
+        total: 3,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      });
+    });
+
+    it("paginates readings correctly with custom page and limit", async () => {
+      // Page 1 with limit 2
+      const page1Res = await request(app)
+        .get("/api/readings?page=1&limit=2")
+        .set("Authorization", `Bearer ${token1}`)
+        .expect(200);
+
+      expect(page1Res.body.data).toHaveLength(2);
+      expect(page1Res.body.data[0].slot).toBe("MORNING");
+      expect(page1Res.body.data[1].slot).toBe("AFTER_DINNER");
+      expect(page1Res.body.pagination).toMatchObject({
+        page: 1,
+        limit: 2,
+        total: 3,
+        totalPages: 2,
+        hasNextPage: true,
+        hasPreviousPage: false,
+      });
+
+      // Page 2 with limit 2
+      const page2Res = await request(app)
+        .get("/api/readings?page=2&limit=2")
+        .set("Authorization", `Bearer ${token1}`)
+        .expect(200);
+
+      expect(page2Res.body.data).toHaveLength(1);
+      expect(page2Res.body.data[0].date).toBe("2026-05-09");
+      expect(page2Res.body.pagination).toMatchObject({
+        page: 2,
+        limit: 2,
+        total: 3,
+        totalPages: 2,
+        hasNextPage: false,
+        hasPreviousPage: true,
+      });
+    });
+
+    it("combines date filtering with pagination", async () => {
+      const response = await request(app)
+        .get("/api/readings?date=2026-05-10&page=1&limit=1")
+        .set("Authorization", `Bearer ${token1}`)
+        .expect(200);
+
+      expect(response.body.data).toHaveLength(1);
+      expect(response.body.data[0].date).toBe("2026-05-10");
+      expect(response.body.data[0].slot).toBe("MORNING");
+      expect(response.body.pagination).toMatchObject({
+        page: 1,
+        limit: 1,
+        total: 2,
+        totalPages: 2,
+        hasNextPage: true,
+        hasPreviousPage: false,
+      });
+    });
+
+    it("returns empty array and appropriate pagination metadata for out-of-range page", async () => {
+      const response = await request(app)
+        .get("/api/readings?page=99&limit=10")
+        .set("Authorization", `Bearer ${token1}`)
+        .expect(200);
+
+      expect(response.body.data).toEqual([]);
+      expect(response.body.pagination).toMatchObject({
+        page: 99,
+        limit: 10,
+        total: 3,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPreviousPage: true,
+      });
+    });
+
+    it("rejects invalid page parameters with HTTP 400", async () => {
+      // page = 0
+      const resZero = await request(app)
+        .get("/api/readings?page=0")
+        .set("Authorization", `Bearer ${token1}`)
+        .expect(400);
+      expect(resZero.body.success).toBe(false);
+
+      // page = -5
+      const resNeg = await request(app)
+        .get("/api/readings?page=-5")
+        .set("Authorization", `Bearer ${token1}`)
+        .expect(400);
+      expect(resNeg.body.success).toBe(false);
+
+      // page = string
+      const resStr = await request(app)
+        .get("/api/readings?page=invalid")
+        .set("Authorization", `Bearer ${token1}`)
+        .expect(400);
+      expect(resStr.body.success).toBe(false);
+    });
+
+    it("rejects invalid limit parameters with HTTP 400", async () => {
+      // limit = 0
+      const resZero = await request(app)
+        .get("/api/readings?limit=0")
+        .set("Authorization", `Bearer ${token1}`)
+        .expect(400);
+      expect(resZero.body.success).toBe(false);
+
+      // limit > 100
+      const resOver = await request(app)
+        .get("/api/readings?limit=101")
+        .set("Authorization", `Bearer ${token1}`)
+        .expect(400);
+      expect(resOver.body.success).toBe(false);
+
+      // limit = non-integer
+      const resFloat = await request(app)
+        .get("/api/readings?limit=10.5")
+        .set("Authorization", `Bearer ${token1}`)
+        .expect(400);
+      expect(resFloat.body.success).toBe(false);
     });
 
     it("filters by date query param ?date=YYYY-MM-DD", async () => {

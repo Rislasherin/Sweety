@@ -4,6 +4,8 @@ import { createApp } from "@main/app";
 import {
   type IReadingRepository,
   type GlucoseStatistics,
+  type PaginatedReadingsResult,
+  type ReadingPaginationOptions,
 } from "@domain/repositories/IReadingRepository";
 import { type IUserRepository } from "@domain/repositories/IUserRepository";
 import { type Reading } from "@domain/entities/Reading";
@@ -57,6 +59,17 @@ class InMemoryReadingRepository implements IReadingRepository {
       if (dateDiff !== 0) return dateDiff;
       return READING_SLOT_ORDER[a.slot] - READING_SLOT_ORDER[b.slot];
     });
+  }
+
+  async findPaginatedByUserId(
+    userId: string,
+    options: ReadingPaginationOptions,
+  ): Promise<PaginatedReadingsResult> {
+    const all = await this.findByUserId(userId, options.date);
+    const total = all.length;
+    const skip = Math.max(0, (options.page - 1) * options.limit);
+    const readings = all.slice(skip, skip + options.limit);
+    return { readings, total };
   }
 
   async findByUserIdDateAndSlot(

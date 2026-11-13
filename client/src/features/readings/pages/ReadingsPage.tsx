@@ -7,6 +7,8 @@ import { formatDateOnly } from '../utils/readingValidation'
 export const ReadingsPage: React.FC = () => {
   const {
     readings,
+    pagination,
+    setPage,
     isLoading,
     isMutating,
     error: fetchError,
@@ -113,6 +115,7 @@ export const ReadingsPage: React.FC = () => {
   return (
     <ReadingsTemplate
       readings={readings}
+      pagination={pagination}
       isLoading={isLoading}
       isMutating={isMutating}
       fetchError={fetchError}
@@ -124,6 +127,7 @@ export const ReadingsPage: React.FC = () => {
       isDeleteDialogOpen={isDeleteDialogOpen}
       readingToDelete={readingToDelete}
       onDateFilterChange={setDateFilter}
+      onPageChange={setPage}
       onAddClick={handleAddClick}
       onEditClick={handleEditClick}
       onDeleteClick={handleDeleteClick}

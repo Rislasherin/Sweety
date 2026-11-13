@@ -8,12 +8,28 @@ export interface GlucoseStatistics {
   count: number;
 }
 
+export interface PaginatedReadingsResult {
+  readings: Reading[];
+  total: number;
+}
+
+export interface ReadingPaginationOptions {
+  page: number;
+  limit: number;
+  date?: Date;
+}
+
 export interface IReadingRepository {
   save(reading: Reading): Promise<Reading>;
 
   findById(id: string, userId: string): Promise<Reading | null>;
 
   findByUserId(userId: string, date?: Date): Promise<Reading[]>;
+
+  findPaginatedByUserId(
+    userId: string,
+    options: ReadingPaginationOptions,
+  ): Promise<PaginatedReadingsResult>;
 
   findByUserIdDateAndSlot(
     userId: string,

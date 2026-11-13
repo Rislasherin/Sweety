@@ -1,16 +1,23 @@
 import { useCallback, useEffect, useState } from 'react'
 import { readingService } from '../services/readingService'
 import type { CreateReadingDTO, Reading, UpdateReadingDTO } from '../types'
+import type { PaginationMeta } from '@/types/api.types'
 import { mapApiErrorToFriendlyMessage, READING_SLOT_ORDER } from '../utils/readingValidation'
 
 export interface UseReadingsReturn {
   readings: Reading[]
+  pagination: PaginationMeta
+  page: number
+  limit: number
+  setPage: (page: number) => void
+  nextPage: () => void
+  prevPage: () => void
   isLoading: boolean
   isMutating: boolean
   error: string | null
   dateFilter: string
   setDateFilter: (date: string) => void
-  fetchReadings: (date?: string) => Promise<void>
+  fetchReadings: (filter?: string, pageNumber?: number) => Promise<void>
   createReading: (dto: CreateReadingDTO) => Promise<Reading>
   updateReading: (id: string, dto: UpdateReadingDTO) => Promise<Reading>
   deleteReading: (id: string) => Promise<void>
@@ -26,8 +33,17 @@ function sortReadings(readings: Reading[]): Reading[] {
   })
 }
 
-export function useReadings(initialDateFilter = ''): UseReadingsReturn {
+export function useReadings(initialDateFilter = '', initialPage = 1, limit = 20): UseReadingsReturn {
   const [readings, setReadings] = useState<Reading[]>([])
+  const [page, setPageState] = useState<number>(initialPage)
+  const [pagination, setPagination] = useState<PaginationMeta>({
+    page: initialPage,
+    limit,
+    total: 0,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPreviousPage: false,
+  })
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [isMutating, setIsMutating] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
@@ -36,33 +52,100 @@ export function useReadings(initialDateFilter = ''): UseReadingsReturn {
   const setDateFilter = useCallback((filter: string) => {
     setIsLoading(true)
     setDateFilterState(filter)
+    setPageState(1)
   }, [])
 
+  const setPage = useCallback((newPage: number) => {
+    setIsLoading(true)
+    setPageState(newPage)
+  }, [])
+
+  const nextPage = useCallback(() => {
+    setPageState((current) => {
+      const canGoNext = pagination.hasNextPage ?? (current < pagination.totalPages)
+      if (canGoNext) {
+        setIsLoading(true)
+        return current + 1
+      }
+      return current
+    })
+  }, [pagination.hasNextPage, pagination.totalPages])
+
+  const prevPage = useCallback(() => {
+    setPageState((current) => {
+      const canGoPrev = pagination.hasPreviousPage ?? (current > 1)
+      if (canGoPrev) {
+        setIsLoading(true)
+        return current - 1
+      }
+      return current
+    })
+  }, [pagination.hasPreviousPage])
+
   const fetchReadings = useCallback(
-    async (filter?: string) => {
+    async (filter?: string, pageNumber?: number) => {
       setIsLoading(true)
       setError(null)
       try {
         const activeFilter = filter !== undefined ? filter : dateFilter
-        const data = await readingService.getReadings(activeFilter || undefined)
-        setReadings(sortReadings(data))
+        const activePage = pageNumber !== undefined ? pageNumber : page
+        const response = await readingService.getReadings({
+          date: activeFilter || undefined,
+          page: activePage,
+          limit,
+        })
+        const items: Reading[] = Array.isArray(response)
+          ? response
+          : (response as { readings?: Reading[] }).readings ?? []
+        const meta: PaginationMeta =
+          'pagination' in response && response.pagination
+            ? response.pagination
+            : {
+                page: activePage,
+                limit,
+                total: items.length,
+                totalPages: Math.ceil(items.length / limit) || 1,
+                hasNextPage: activePage < (Math.ceil(items.length / limit) || 1),
+                hasPreviousPage: activePage > 1,
+              }
+        setReadings(sortReadings(items))
+        setPagination(meta)
       } catch (err) {
         setError(mapApiErrorToFriendlyMessage(err))
       } finally {
         setIsLoading(false)
       }
     },
-    [dateFilter]
+    [dateFilter, page, limit]
   )
 
   useEffect(() => {
     let isCancelled = false
 
     readingService
-      .getReadings(dateFilter || undefined)
-      .then((data) => {
+      .getReadings({
+        date: dateFilter || undefined,
+        page,
+        limit,
+      })
+      .then((response) => {
         if (!isCancelled) {
-          setReadings(sortReadings(data))
+          const items: Reading[] = Array.isArray(response)
+          ? response
+          : (response as { readings?: Reading[] }).readings ?? []
+          const meta: PaginationMeta =
+            'pagination' in response && response.pagination
+              ? response.pagination
+              : {
+                  page,
+                  limit,
+                  total: items.length,
+                  totalPages: Math.ceil(items.length / limit) || 1,
+                  hasNextPage: page < (Math.ceil(items.length / limit) || 1),
+                  hasPreviousPage: page > 1,
+                }
+          setReadings(sortReadings(items))
+          setPagination(meta)
           setError(null)
           setIsLoading(false)
         }
@@ -77,7 +160,7 @@ export function useReadings(initialDateFilter = ''): UseReadingsReturn {
     return () => {
       isCancelled = true
     }
-  }, [dateFilter])
+  }, [dateFilter, page, limit])
 
   const createReading = useCallback(
     async (dto: CreateReadingDTO): Promise<Reading> => {
@@ -90,6 +173,17 @@ export function useReadings(initialDateFilter = ''): UseReadingsReturn {
             return prev
           }
           return sortReadings([created, ...prev])
+        })
+        setPagination((prev) => {
+          const newTotal = prev.total + 1
+          const newTotalPages = Math.ceil(newTotal / prev.limit) || 1
+          return {
+            ...prev,
+            total: newTotal,
+            totalPages: newTotalPages,
+            hasNextPage: prev.page < newTotalPages,
+            hasPreviousPage: prev.page > 1,
+          }
         })
         return created
       } catch (err) {
@@ -130,6 +224,17 @@ export function useReadings(initialDateFilter = ''): UseReadingsReturn {
     try {
       await readingService.deleteReading(id)
       setReadings((prev) => prev.filter((r) => r.id !== id))
+      setPagination((prev) => {
+        const newTotal = Math.max(0, prev.total - 1)
+        const newTotalPages = Math.ceil(newTotal / prev.limit) || 1
+        return {
+          ...prev,
+          total: newTotal,
+          totalPages: newTotalPages,
+          hasNextPage: prev.page < newTotalPages,
+          hasPreviousPage: prev.page > 1,
+        }
+      })
     } catch (err) {
       const friendlyMessage = mapApiErrorToFriendlyMessage(err)
       throw new Error(friendlyMessage)
@@ -144,6 +249,12 @@ export function useReadings(initialDateFilter = ''): UseReadingsReturn {
 
   return {
     readings,
+    pagination,
+    page,
+    limit,
+    setPage,
+    nextPage,
+    prevPage,
     isLoading,
     isMutating,
     error,

@@ -43,7 +43,10 @@ describe("Reading Use Cases Unit Tests", () => {
       save: vi.fn(),
       findById: vi.fn(),
       findByUserId: vi.fn(),
+      findPaginatedByUserId: vi.fn(),
       findByUserIdDateAndSlot: vi.fn(),
+      findByDateRange: vi.fn(),
+      getAggregatedStats: vi.fn(),
       countByUserIdAndDate: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
@@ -138,23 +141,111 @@ describe("Reading Use Cases Unit Tests", () => {
   });
 
   describe("GetUserReadingsUseCase", () => {
-    it("1. Retrieves user's own readings", async () => {
-      vi.mocked(readingRepository.findByUserId).mockResolvedValue([sampleReading]);
+    it("1. Retrieves user's own readings with default pagination", async () => {
+      vi.mocked(readingRepository.findPaginatedByUserId).mockResolvedValue({
+        readings: [sampleReading],
+        total: 1,
+      });
 
-      const results = await getUserReadingsUseCase.execute(userId);
+      const result = await getUserReadingsUseCase.execute(userId);
 
-      expect(readingRepository.findByUserId).toHaveBeenCalledWith(userId, undefined);
-      expect(results.length).toBe(1);
-      expect(results[0].id).toBe("reading-uuid-1");
+      expect(readingRepository.findPaginatedByUserId).toHaveBeenCalledWith(userId, {
+        date: undefined,
+        page: 1,
+        limit: 20,
+      });
+      expect(result.readings.length).toBe(1);
+      expect(result.readings[0].id).toBe("reading-uuid-1");
+      expect(result.pagination).toEqual({
+        page: 1,
+        limit: 20,
+        total: 1,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPreviousPage: false,
+        hasNext: false,
+        hasPrev: false,
+      });
     });
 
-    it("2. Filters readings by date", async () => {
-      vi.mocked(readingRepository.findByUserId).mockResolvedValue([sampleReading]);
+    it("2. Filters readings by date with pagination options", async () => {
+      vi.mocked(readingRepository.findPaginatedByUserId).mockResolvedValue({
+        readings: [sampleReading],
+        total: 1,
+      });
 
-      const results = await getUserReadingsUseCase.execute(userId, "2026-11-10");
+      const result = await getUserReadingsUseCase.execute(userId, "2026-11-10");
 
-      expect(readingRepository.findByUserId).toHaveBeenCalledWith(userId, expect.any(Date));
-      expect(results.length).toBe(1);
+      expect(readingRepository.findPaginatedByUserId).toHaveBeenCalledWith(userId, {
+        date: expect.any(Date),
+        page: 1,
+        limit: 20,
+      });
+      expect(result.readings.length).toBe(1);
+    });
+
+    it("3. Handles custom pagination parameters and multi-page calculation", async () => {
+      vi.mocked(readingRepository.findPaginatedByUserId).mockResolvedValue({
+        readings: [sampleReading],
+        total: 45,
+      });
+
+      const result = await getUserReadingsUseCase.execute(userId, {
+        page: 2,
+        limit: 10,
+      });
+
+      expect(readingRepository.findPaginatedByUserId).toHaveBeenCalledWith(userId, {
+        date: undefined,
+        page: 2,
+        limit: 10,
+      });
+      expect(result.pagination).toEqual({
+        page: 2,
+        limit: 10,
+        total: 45,
+        totalPages: 5,
+        hasNextPage: true,
+        hasPreviousPage: true,
+        hasNext: true,
+        hasPrev: true,
+      });
+    });
+
+    it("4. Correctly computes empty state pagination metadata", async () => {
+      vi.mocked(readingRepository.findPaginatedByUserId).mockResolvedValue({
+        readings: [],
+        total: 0,
+      });
+
+      const result = await getUserReadingsUseCase.execute(userId, { page: 1, limit: 20 });
+
+      expect(result.readings).toEqual([]);
+      expect(result.pagination).toEqual({
+        page: 1,
+        limit: 20,
+        total: 0,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPreviousPage: false,
+        hasNext: false,
+        hasPrev: false,
+      });
+    });
+
+    it("5. Supports fallback to findByUserId if findPaginatedByUserId is not defined", async () => {
+      const repoWithoutPagination = {
+        ...readingRepository,
+        findPaginatedByUserId: undefined as unknown as IReadingRepository["findPaginatedByUserId"],
+      };
+      vi.mocked(repoWithoutPagination.findByUserId).mockResolvedValue([sampleReading]);
+
+      const useCaseWithFallback = new GetUserReadingsUseCase(repoWithoutPagination);
+      const result = await useCaseWithFallback.execute(userId, { page: 1, limit: 10 });
+
+      expect(repoWithoutPagination.findByUserId).toHaveBeenCalledWith(userId, undefined);
+      expect(result.readings.length).toBe(1);
+      expect(result.pagination.total).toBe(1);
     });
   });
 

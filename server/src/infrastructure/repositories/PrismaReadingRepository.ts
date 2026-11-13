@@ -2,6 +2,8 @@ import { Prisma, type PrismaClient } from "@prisma/client";
 import {
   type IReadingRepository,
   type GlucoseStatistics,
+  type PaginatedReadingsResult,
+  type ReadingPaginationOptions,
 } from "@domain/repositories/IReadingRepository";
 import { type Reading } from "@domain/entities/Reading";
 import { type ReadingSlotType, READING_SLOT_ORDER } from "@domain/enums/ReadingSlotType";
@@ -55,6 +57,42 @@ export class PrismaReadingRepository implements IReadingRepository {
       if (dateDiff !== 0) return dateDiff;
       return READING_SLOT_ORDER[a.slot] - READING_SLOT_ORDER[b.slot];
     });
+  }
+
+  async findPaginatedByUserId(
+    userId: string,
+    options: ReadingPaginationOptions,
+  ): Promise<PaginatedReadingsResult> {
+    const where: Prisma.ReadingWhereInput = {
+      userId,
+      ...(options.date ? { date: options.date } : {}),
+    };
+
+    const skip = Math.max(0, (options.page - 1) * options.limit);
+    const take = options.limit;
+
+    const countPromise = this._prisma.reading.count({ where });
+    const findPromise = this._prisma.reading.findMany({
+      where,
+      skip,
+      take,
+      orderBy: [{ date: "desc" }, { createdAt: "asc" }],
+    });
+
+    const [total, records] =
+      typeof this._prisma.$transaction === "function"
+        ? await this._prisma.$transaction([countPromise, findPromise])
+        : await Promise.all([countPromise, findPromise]);
+
+    const readings = records.map(PrismaReadingMapper.toDomain);
+
+    const sorted = readings.sort((a, b) => {
+      const dateDiff = b.date.getTime() - a.date.getTime();
+      if (dateDiff !== 0) return dateDiff;
+      return READING_SLOT_ORDER[a.slot] - READING_SLOT_ORDER[b.slot];
+    });
+
+    return { readings: sorted, total };
   }
 
   async findByUserIdDateAndSlot(
