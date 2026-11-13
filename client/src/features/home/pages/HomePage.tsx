@@ -126,7 +126,7 @@ export const HomePage: React.FC = () => {
                 <Button
                   variant="outline"
                   size="md"
-                  className="border-teal-300/40 text-white hover:bg-teal-700/50"
+                  className="border-teal-300/40 text-teal-900 hover:bg-teal-700/50"
                 >
                   Sign In
                 </Button>
