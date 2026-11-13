@@ -89,6 +89,10 @@ Aggregated metrics from the 1st of the month through the selected date, featurin
 Aggregated historical metrics and daily trend trajectory for the preceding calendar month.
 ![Previous Month Report](docs/screenshots/previous_month_report.png)
 
+### Monthly Glucose Trend Line Chart
+Accessible SVG line chart displaying daily glucose averages and neutral scale benchmarks (70, 100, 140 mg/dL) across active reporting periods.
+![Monthly Glucose Trend Chart](docs/screenshots/monthly_glucose_trend_chart.png)
+
 ### Readings Log & Management
 Tabular reading history showing recorded values, meal slot badges, informational status pills, date filters, and pagination controls.
 ![Readings Log](docs/screenshots/readings_log.png)
