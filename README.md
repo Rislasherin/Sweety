@@ -218,8 +218,6 @@ sweety/
 │       ├── services/               # Axios API client with token interceptors
 │       └── test/                   # Client Vitest suites (17 test files)
 │
-├── docs/
-│   └── screenshots/                # Application verification screenshots
 ├── docker-compose.yml              # Root Docker Compose service orchestration
 ├── .env.example                    # Root Compose environment template
 └── README.md                       # Complete project documentation
