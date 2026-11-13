@@ -180,7 +180,7 @@ export const HomePage: React.FC = () => {
               <span className="text-xs font-semibold uppercase tracking-wider text-teal-600">
                 Module 03
               </span>
-              <Badge variant="info">Ready to Build</Badge>
+              <Badge variant="success">Active</Badge>
             </div>
             <CardTitle>Reports & Analytics</CardTitle>
             <CardDescription>
@@ -188,11 +188,16 @@ export const HomePage: React.FC = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ul className="text-xs text-slate-500 space-y-1.5 list-disc list-inside">
+            <ul className="text-xs text-slate-500 space-y-1.5 list-disc list-inside mb-4">
               <li>Statistical breakdown (Average, Min, Max, Count)</li>
-              <li>Time-in-range percentage visualizations</li>
-              <li>Comprehensive period comparison</li>
+              <li>Accessible SVG glucose curve & spread gauge</li>
+              <li>Daily, Month-to-Date & Previous-Month periods</li>
             </ul>
+            <Link to="/reports">
+              <Button variant="outline" size="sm" className="w-full text-xs">
+                Open Reports &rarr;
+              </Button>
+            </Link>
           </CardContent>
         </Card>
       </section>

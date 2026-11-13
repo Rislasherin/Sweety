@@ -13,10 +13,10 @@ export const Header: React.FC<HeaderProps> = ({ apiStatus = 'checking' }) => {
   const location = useLocation()
   const { user, isAuthenticated, logout } = useAuth()
 
-  const navLinks = [
+  const navLinks: { label: string; path: string; badge?: string }[] = [
     { label: 'Home', path: '/' },
     { label: 'Readings', path: '/readings' },
-    { label: 'Reports', path: '/reports', badge: 'Soon' },
+    { label: 'Reports', path: '/reports' },
   ]
 
   const statusVariant =

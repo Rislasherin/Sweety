@@ -1,16 +1,34 @@
-import type { GlucoseStats, GlucoseReading } from '@/types/glucose.types'
+import type { ReadingSlotType } from '@/features/readings/types'
 
-export type ReportType = 'daily' | 'month-to-date' | 'previous-month'
+export type ReportPeriod = 'daily' | 'month-to-date' | 'previous-month'
 
-export interface DailyReportViewModel {
-  date: string
-  stats: GlucoseStats
-  readings: GlucoseReading[]
+export interface DailyReportReadingItem {
+  id: string
+  date: string // YYYY-MM-DD
+  slot: ReadingSlotType
+  glucoseValue: number
+  createdAt: string // ISO 8601 string
 }
 
-export interface PeriodReportViewModel {
-  startDate: string
-  endDate: string
-  stats: GlucoseStats
-  readings: GlucoseReading[]
+export interface BaseReport {
+  reportType: 'DAILY' | 'MONTH_TO_DATE' | 'PREVIOUS_MONTH'
+  startDate: string // YYYY-MM-DD
+  endDate: string // YYYY-MM-DD
+  highest: number | null
+  lowest: number | null
+  average: number | null // Rounded to 1 decimal place
+  count: number
+  totalReadings: number
+  hasData: boolean
 }
+
+export interface DailyReport extends BaseReport {
+  reportType: 'DAILY'
+  readings: DailyReportReadingItem[]
+}
+
+export type MonthToDateReport = BaseReport
+
+export type PreviousMonthReport = BaseReport
+
+export type AnyReport = DailyReport | BaseReport

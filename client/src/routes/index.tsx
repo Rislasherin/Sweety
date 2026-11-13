@@ -5,6 +5,7 @@ import { HomePage } from '@/features/home/pages/HomePage'
 import { LoginPage } from '@/features/auth/pages/LoginPage'
 import { SignupPage } from '@/features/auth/pages/SignupPage'
 import { ReadingsPage } from '@/features/readings/pages/ReadingsPage'
+import { ReportsPage } from '@/features/reports/pages/ReportsPage'
 import { NotFoundPage } from '@/features/common/pages/NotFoundPage'
 import { PublicOnlyRoute } from './PublicOnlyRoute'
 import { ProtectedRoute } from './ProtectedRoute'
@@ -25,6 +26,7 @@ export const AppRoutes: React.FC = () => {
         {/* Protected feature routes */}
         <Route element={<ProtectedRoute />}>
           <Route path="/readings" element={<ReadingsPage />} />
+          <Route path="/reports" element={<ReportsPage />} />
         </Route>
 
         <Route path="*" element={<NotFoundPage />} />
