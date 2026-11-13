@@ -498,6 +498,15 @@ describe("Reports API (HTTP Integration)", () => {
         totalReadings: 3,
         hasData: true,
       });
+
+      expect(response.body.data.dailyTrends).toHaveLength(3);
+      expect(response.body.data.dailyTrends[0]).toEqual({
+        date: "2026-05-01",
+        average: 90,
+        count: 1,
+        highest: 90,
+        lowest: 90,
+      });
     });
   });
 
@@ -574,6 +583,15 @@ describe("Reports API (HTTP Integration)", () => {
         count: 3,
         totalReadings: 3,
         hasData: true,
+      });
+
+      expect(response.body.data.dailyTrends).toHaveLength(3);
+      expect(response.body.data.dailyTrends[0]).toEqual({
+        date: "2026-04-01",
+        average: 95,
+        count: 1,
+        highest: 95,
+        lowest: 95,
       });
     });
 

@@ -6,6 +6,7 @@ import { MetricStatCard } from '../features/reports/components/atoms/MetricStatC
 import { PeriodTabButton } from '../features/reports/components/atoms/PeriodTabButton'
 import { ReportPeriodNav } from '../features/reports/components/molecules/ReportPeriodNav'
 import { DailySlotChart } from '../features/reports/components/molecules/DailySlotChart'
+import { MonthlyTrendChart } from '../features/reports/components/molecules/MonthlyTrendChart'
 import { GlycemicSpreadGauge } from '../features/reports/components/molecules/GlycemicSpreadGauge'
 import { DailyReadingsTable } from '../features/reports/components/molecules/DailyReadingsTable'
 import { ReportEmptyState } from '../features/reports/components/molecules/ReportEmptyState'
@@ -76,6 +77,12 @@ describe('Reports & Analytics UI Flow & Components', () => {
     count: 25,
     totalReadings: 25,
     hasData: true,
+    dailyTrends: [
+      { date: '2026-11-01', average: 105.0, count: 2, highest: 120, lowest: 90 },
+      { date: '2026-11-05', average: 118.5, count: 3, highest: 140, lowest: 95 },
+      { date: '2026-11-10', average: 124.0, count: 4, highest: 172, lowest: 88 },
+      { date: '2026-11-12', average: 112.0, count: 2, highest: 130, lowest: 74 },
+    ],
   }
 
   const mockPrevMonthReport: PreviousMonthReport = {
@@ -176,6 +183,59 @@ describe('Reports & Analytics UI Flow & Components', () => {
       expect(screen.getAllByText('After Breakfast')).toHaveLength(2)
       expect(screen.getAllByText('After Lunch')).toHaveLength(2)
       expect(screen.getAllByText('After Dinner')).toHaveLength(2)
+    })
+  })
+
+  describe('MonthlyTrendChart Molecule', () => {
+    const mockDailyTrends = [
+      { date: '2026-11-01', average: 95.0, count: 2, highest: 110, lowest: 80 },
+      { date: '2026-11-05', average: 118.5, count: 3, highest: 140, lowest: 95 },
+      { date: '2026-11-10', average: 130.0, count: 4, highest: 172, lowest: 88 },
+    ]
+
+    it('renders accessible SVG chart with title, points, legends, and sr-only table', () => {
+      render(
+        <MonthlyTrendChart
+          dailyTrends={mockDailyTrends}
+          periodTitle="Month-to-Date"
+          dateRange="Nov 1, 2026 – Nov 10, 2026"
+        />
+      )
+
+      expect(screen.getByRole('img')).toBeInTheDocument()
+      expect(screen.getByText('Month-to-Date Daily Glucose Trend')).toBeInTheDocument()
+      expect(screen.getByText('3 Active Days')).toBeInTheDocument()
+      expect(screen.getByText('Daily Average')).toBeInTheDocument()
+      expect(screen.getByText('Trend Progression')).toBeInTheDocument()
+      expect(
+        screen.getByText('Month-to-Date daily glucose averages for Nov 1, 2026 – Nov 10, 2026')
+      ).toBeInTheDocument()
+    })
+
+    it('renders single trend point without crashing and shows 1 Active Day', () => {
+      render(
+        <MonthlyTrendChart
+          dailyTrends={[{ date: '2026-11-01', average: 100.0, count: 1, highest: 100, lowest: 100 }]}
+          periodTitle="Previous Month"
+          dateRange="Oct 1, 2026 – Oct 31, 2026"
+        />
+      )
+
+      expect(screen.getByText('1 Active Day')).toBeInTheDocument()
+    })
+
+    it('renders empty notice when dailyTrends is empty', () => {
+      render(
+        <MonthlyTrendChart
+          dailyTrends={[]}
+          periodTitle="Month-to-Date"
+          dateRange="Nov 1, 2026 – Nov 12, 2026"
+        />
+      )
+
+      expect(
+        screen.getByText(/No daily trend data available for this reporting period/i)
+      ).toBeInTheDocument()
     })
   })
 
@@ -299,6 +359,8 @@ describe('Reports & Analytics UI Flow & Components', () => {
       await waitFor(() => {
         expect(screen.getByText('Month-to-Date Glycemic Spread & Distribution')).toBeInTheDocument()
       })
+      expect(screen.getByText('Month-to-Date Daily Glucose Trend')).toBeInTheDocument()
+      expect(screen.getByText('4 Active Days')).toBeInTheDocument()
       expect(screen.getAllByText('115.8 mg/dL').length).toBeGreaterThanOrEqual(1)
       expect(screen.getAllByText('172 mg/dL').length).toBeGreaterThanOrEqual(1)
       expect(screen.getAllByText('74 mg/dL').length).toBeGreaterThanOrEqual(1)

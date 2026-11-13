@@ -2,6 +2,7 @@ import React from 'react'
 import { Alert } from '@/components/molecules/Alert'
 import { Button } from '@/components/atoms/Button'
 import { Spinner } from '@/components/atoms/Spinner'
+import { Skeleton } from '@/components/atoms/Skeleton'
 import type { CreateReadingDTO, Reading, UpdateReadingDTO } from '../../types'
 import { ReadingEmptyState } from '../molecules/ReadingEmptyState'
 import { ReadingDeleteDialog } from '../molecules/ReadingDeleteDialog'
@@ -83,10 +84,21 @@ export const ReadingsTemplate: React.FC<ReadingsTemplateProps> = ({
 
       {/* Main Content Area */}
       {isLoading ? (
-        <div className="py-20 flex flex-col items-center justify-center text-center">
-          <Spinner size="lg" className="text-teal-600 mb-3" />
-          <p className="text-sm font-medium text-slate-600">Loading glucose readings...</p>
-          <p className="text-xs text-slate-400 mt-1">Retrieving your secure health records</p>
+        <div className="space-y-4">
+          <div className="py-6 flex flex-col items-center justify-center text-center">
+            <Spinner size="lg" className="text-teal-600 mb-2" />
+            <p className="text-sm font-medium text-slate-600">Loading glucose readings...</p>
+            <p className="text-xs text-slate-400 mt-1">Retrieving your secure health records</p>
+          </div>
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-6 space-y-3 shadow-2xs">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <Skeleton width="120px" height="18px" />
+              <Skeleton width="80px" height="18px" />
+            </div>
+            <Skeleton height="52px" />
+            <Skeleton height="52px" />
+            <Skeleton height="52px" />
+          </div>
         </div>
       ) : fetchError ? (
         <div className="p-8 rounded-2xl bg-white border border-rose-200 text-center max-w-md mx-auto shadow-xs">

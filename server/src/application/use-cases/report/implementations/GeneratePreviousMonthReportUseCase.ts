@@ -4,7 +4,12 @@ import {
   type PreviousMonthReportResponseDTO,
   ReportType,
 } from "@application/dtos/report/Response/ReportResponseDTO";
-import { parseDateOnly, assertNotFutureDate, getPreviousMonthRange } from "@domain/utils/dateUtils";
+import {
+  parseDateOnly,
+  assertNotFutureDate,
+  getPreviousMonthRange,
+  calculateDailyTrends,
+} from "@domain/utils/dateUtils";
 
 export class GeneratePreviousMonthReportUseCase implements IGeneratePreviousMonthReportUseCase {
   constructor(private readonly _readingRepository: IReadingRepository) {}
@@ -20,8 +25,10 @@ export class GeneratePreviousMonthReportUseCase implements IGeneratePreviousMont
       range.endDate,
     );
 
+    const hasFindByDateRange = typeof this._readingRepository.findByDateRange === "function";
+
     if (stats.count === 0) {
-      return {
+      const emptyReport: PreviousMonthReportResponseDTO = {
         reportType: ReportType.PREVIOUS_MONTH,
         startDate: range.startDateStr,
         endDate: range.endDateStr,
@@ -32,9 +39,13 @@ export class GeneratePreviousMonthReportUseCase implements IGeneratePreviousMont
         totalReadings: 0,
         hasData: false,
       };
+      if (hasFindByDateRange) {
+        emptyReport.dailyTrends = [];
+      }
+      return emptyReport;
     }
 
-    return {
+    const report: PreviousMonthReportResponseDTO = {
       reportType: ReportType.PREVIOUS_MONTH,
       startDate: range.startDateStr,
       endDate: range.endDateStr,
@@ -45,5 +56,21 @@ export class GeneratePreviousMonthReportUseCase implements IGeneratePreviousMont
       totalReadings: stats.count,
       hasData: true,
     };
+
+    if (hasFindByDateRange) {
+      const readings = await this._readingRepository.findByDateRange(
+        userId,
+        range.startDate,
+        range.endDate,
+      );
+      report.dailyTrends = calculateDailyTrends(
+        readings.map((r) => ({
+          date: r.date,
+          glucoseValue: r.value.getValue(),
+        })),
+      );
+    }
+
+    return report;
   }
 }

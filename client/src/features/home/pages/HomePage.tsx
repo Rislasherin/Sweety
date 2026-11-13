@@ -9,6 +9,7 @@ import {
   CardDescription,
   CardContent,
   Spinner,
+  Skeleton,
 } from '@/components/atoms'
 import { useAuth } from '@/features/auth/hooks/useAuth'
 import { readingService } from '@/features/readings/services/readingService'
@@ -31,6 +32,7 @@ export const HomePage: React.FC = () => {
   const [recentReadings, setRecentReadings] = useState<Reading[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [retryTrigger, setRetryTrigger] = useState(0)
 
   useEffect(() => {
     if (!isAuthenticated) return
@@ -65,7 +67,11 @@ export const HomePage: React.FC = () => {
     return () => {
       isMounted = false
     }
-  }, [isAuthenticated, today])
+  }, [isAuthenticated, today, retryTrigger])
+
+  useEffect(() => {
+    document.title = 'Sweety — Dashboard'
+  }, [])
 
   // Computed today's metrics
   const todayCount = todayReadings.length
@@ -243,14 +249,39 @@ export const HomePage: React.FC = () => {
 
       {/* Loading or Error State */}
       {isLoading ? (
-        <div className="py-12 flex flex-col items-center justify-center text-center">
-          <Spinner size="lg" className="text-teal-600 mb-3" />
-          <p className="text-sm font-medium text-slate-600">Getting your latest readings…</p>
+        <div className="space-y-6">
+          <div className="flex items-center gap-2 text-slate-500 py-1">
+            <Spinner size="sm" className="text-teal-600" />
+            <p className="text-sm font-medium text-slate-600">Getting your latest readings…</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Skeleton variant="card" height="110px" />
+            <Skeleton variant="card" height="110px" />
+            <Skeleton variant="card" height="110px" />
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-3">
+              <Skeleton height="20px" width="140px" />
+              <Skeleton variant="card" height="160px" />
+            </div>
+            <div className="space-y-3">
+              <Skeleton height="20px" width="120px" />
+              <Skeleton variant="card" height="160px" />
+            </div>
+          </div>
         </div>
       ) : loadError ? (
         <Card className="border-rose-200 bg-rose-50/50">
-          <CardContent className="pt-6 text-center text-sm text-rose-700">
-            {loadError}
+          <CardContent className="p-6 text-center text-sm text-rose-700 flex flex-col items-center justify-center gap-3">
+            <p>{loadError}</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setRetryTrigger((c) => c + 1)}
+              className="border-rose-300 text-rose-700 hover:bg-rose-100"
+            >
+              Retry
+            </Button>
           </CardContent>
         </Card>
       ) : (
@@ -275,7 +306,7 @@ export const HomePage: React.FC = () => {
                     <CardDescription className="text-xs font-medium text-slate-500">
                       Readings Today
                     </CardDescription>
-                    <CardTitle className="text-2xl font-bold text-slate-900">
+                    <CardTitle className="text-2xl font-bold text-slate-900 tabular-nums">
                       {todayCount}{' '}
                       <span className="text-sm font-normal text-slate-400">/ 4 slots</span>
                     </CardTitle>
@@ -303,7 +334,7 @@ export const HomePage: React.FC = () => {
                         </Badge>
                       )}
                     </div>
-                    <CardTitle className="text-2xl font-bold text-slate-900">
+                    <CardTitle className="text-2xl font-bold text-slate-900 tabular-nums">
                       {todayAverage !== null ? `${todayAverage} ` : '— '}
                       <span className="text-sm font-normal text-slate-400">mg/dL</span>
                     </CardTitle>

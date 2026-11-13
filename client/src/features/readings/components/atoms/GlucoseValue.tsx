@@ -13,15 +13,15 @@ export interface GlucoseValueProps {
 
 const sizeStyles = {
   sm: {
-    value: 'text-base font-bold',
+    value: 'text-base font-bold tabular-nums',
     unit: 'text-xs text-slate-500 font-medium',
   },
   md: {
-    value: 'text-xl font-extrabold',
+    value: 'text-xl font-extrabold tabular-nums',
     unit: 'text-xs text-slate-500 font-medium',
   },
   lg: {
-    value: 'text-3xl font-black tracking-tight',
+    value: 'text-3xl font-black tracking-tight tabular-nums',
     unit: 'text-sm text-slate-500 font-medium',
   },
 }

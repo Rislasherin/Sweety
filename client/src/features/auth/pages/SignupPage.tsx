@@ -1,8 +1,12 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { AuthTemplate } from '@/components/templates/AuthTemplate'
 import { SignupForm } from '../components/SignupForm'
 
 export const SignupPage: React.FC = () => {
+  useEffect(() => {
+    document.title = 'Sweety — Create Account'
+  }, [])
+
   return (
     <AuthTemplate
       title="Create your account"

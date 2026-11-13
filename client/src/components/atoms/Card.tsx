@@ -61,13 +61,7 @@ export const CardContent: React.FC<CardProps> = ({ className, children, ...props
 
 export const CardFooter: React.FC<CardProps> = ({ className, children, ...props }) => {
   return (
-    <div
-      className={cn(
-        'p-6 pt-0 border-t border-slate-100 flex items-center justify-between',
-        className
-      )}
-      {...props}
-    >
+    <div className={cn('p-6 pt-0 flex items-center justify-between', className)} {...props}>
       {children}
     </div>
   )

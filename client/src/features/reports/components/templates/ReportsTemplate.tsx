@@ -1,6 +1,7 @@
 import React from 'react'
 import { Button } from '@/components/atoms/Button'
 import { Spinner } from '@/components/atoms/Spinner'
+import { Skeleton } from '@/components/atoms/Skeleton'
 import { Alert } from '@/components/molecules/Alert'
 import type { AnyReport, DailyReport, ReportPeriod } from '../../types'
 import { ReportPeriodNav } from '../molecules/ReportPeriodNav'
@@ -87,12 +88,21 @@ export const ReportsTemplate: React.FC<ReportsTemplateProps> = ({
 
       {/* Loading state */}
       {isLoading && (
-        <div className="flex flex-col items-center justify-center p-16 rounded-2xl bg-white border border-slate-100 shadow-2xs">
-          <Spinner size="lg" className="text-teal-600 mb-3" />
-          <p className="text-sm font-semibold text-slate-700">Loading Report Data...</p>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Fetching glycemic statistics for the selected period
-          </p>
+        <div className="space-y-6">
+          <div className="flex flex-col items-center justify-center p-8 rounded-2xl bg-white border border-slate-100 shadow-2xs">
+            <Spinner size="lg" className="text-teal-600 mb-3" />
+            <p className="text-sm font-semibold text-slate-700">Loading Report Data...</p>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Fetching glycemic statistics for the selected period
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Skeleton variant="card" height="110px" />
+            <Skeleton variant="card" height="110px" />
+            <Skeleton variant="card" height="110px" />
+            <Skeleton variant="card" height="110px" />
+          </div>
+          <Skeleton variant="card" height="240px" />
         </div>
       )}
 
